@@ -55,6 +55,18 @@ and test the GitHub path once: Actions → deploy → `status`.
 `sudo rm /root/hosh-deploy/edge/traefik/dynamic/livres.yml /etc/hosh-deploy/apps/livres.conf` +
 `sudo .../setup-hosh-deploy.sh unkey livres`.
 
+## 1c. Change the mail settings later (owner)
+
+Sender account wrong, password changed, new recipient: in your own SSH terminal,
+```sh
+cd /srv/livres && sudo git fetch -q --depth 1 origin tag vX.Y.Z && sudo git checkout -q vX.Y.Z  # script with --mail (v0.2.0+)
+sudo bash /srv/livres/scripts/set-secrets.sh --mail /srv/livres/livres.env
+sudo hosh-deploy status livres && sudo hosh-deploy deploy livres <version in use>   # restart with the new settings
+```
+Only the mail questions are asked; the admin password and the agent token stay as they are. Messages that
+failed meanwhile stay in the outbox and go out with the new settings. Check: `/api/v1/status` shows
+`"mail": "configured"`, `/admin/events` shows "en attente : 0", and a test book request reaches you.
+
 ## 2. Variables (`livres.env`, mode 600)
 | Variable | Default | Set by | Meaning |
 |---|---|---|---|
