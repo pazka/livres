@@ -32,8 +32,12 @@ sudo git fetch -q --depth 1 origin tag v0.1.0 && sudo git checkout -q v0.1.0
 # B — env file from the template (no secret in it yet); never read it after step C
 [ -e livres.env ] || sudo install -m 600 .env.example livres.env
 ```
-**C — owner: secrets.** TODO (builder): the exact owner command(s), e.g.
-`sudo bash -c 'cd /srv/livres && bash scripts/set-admin.sh ./livres.env'`; delete if none.
+**C — owner: secrets** (in your own SSH terminal; the image must be pulled first:
+`sudo docker pull ghcr.io/pazka/livres:v0.1.0`):
+`sudo bash /srv/livres/scripts/set-secrets.sh /srv/livres/livres.env`
+It asks for the admin password (hashed inside the image, offline), generates the agent API token (shown
+once: store it as the GitHub secret `LIVRES_ADMIN_TOKEN` and in your password manager), and asks for the
+SMTP settings used for book requests and source alerts (a Gmail app password works).
 ```sh
 # D — pin the box config (validates the compose hardening), first deploy (writes the Traefik route)
 sudo hosh-deploy register livres
@@ -52,11 +56,36 @@ and test the GitHub path once: Actions → deploy → `status`.
 `sudo .../setup-hosh-deploy.sh unkey livres`.
 
 ## 2. Variables (`livres.env`, mode 600)
-TODO (builder): table of every variable: default, who sets it, meaning.
+| Variable | Default | Set by | Meaning |
+|---|---|---|---|
+| `APP_IMAGE` | `ghcr.io/pazka/livres:v0.1.0` | hosh-deploy | release tag in use |
+| `APP_BIND` | `127.0.0.1:9133` | box | loopback port |
+| `APP_TRUSTED_PROXIES` | `127.0.0.0/8,::1/128,172.16.0.0/12` | box | peers whose `X-Forwarded-For` is believed |
+| `APP_BASE_URL` | `https://livres.hosh.it` | box | absolute links in feeds and mails |
+| `LIVRES_ADMIN_PASSWORD_HASH` | — | owner (script) | scrypt hash of the admin password |
+| `LIVRES_ADMIN_TOKEN_SHA256` | — | owner (script) | sha256 of the agent/CI token |
+| `LIVRES_CLIENT_TOKENS` | empty | owner | optional allowlist of app install tokens for requests |
+| `LIVRES_OWNER_EMAIL` | — | owner (script) | recipient of requests and alerts |
+| `LIVRES_MAIL_FROM` | — | owner (script) | sender address |
+| `LIVRES_SMTP_HOST` / `_PORT` / `_USER` / `_PASSWORD` / `_TLS` | — / 587 / — / — / starttls | owner (script) | outgoing mail |
+| `LIVRES_HEALTH_INTERVAL` | 21600 (6 h) | box | seconds between source checks |
+| `LIVRES_HARVEST_INTERVAL` | 604800 (7 d) | box | seconds between catalogue harvests |
+| `LIVRES_FAIL_THRESHOLD` | 2 | box | failed checks in a row before an alert |
+| `LIVRES_REQUESTS_PER_HOUR` / `_PER_DAY` | 5 / 50 | box | book request limits (per install / total) |
+| `LIVRES_MIN_HOST_INTERVAL` | 1 | box | seconds between two requests to one source host |
+| `LIVRES_CACHE_TTL` | 600 | box | search cache seconds |
 
 ## 3. Capability checks (what "works" means — not just a 200)
-TODO (builder): one line per feature: request → expected shape/effect. Example:
-`GET /api/items` → 200 JSON list; `POST /api/items` round-trip then `DELETE` (test item).
+`POST_DEPLOY` runs `python -m livres.cli smoke http://127.0.0.1:8000` inside the container (checks 1–5).
+1. `GET /healthz` → 200 `{"status":"ok","db":"ok","books_indexed":N,"sources":{"enabled":≥3,"down":[…]},"mail":"configured"}`.
+   After the first hour `books_indexed` > 1000 (Gutenberg + Wikisource harvested); `mail` must be `configured`.
+2. `GET /opds/v2/catalog.json` → 200 `application/opds+json`, a `search` link with `templated: true`, non-empty `navigation`.
+3. `GET /opds/v2/search?query=hugo` → 200 OPDS feed; once sources answer, `publications` non-empty, first link `application/epub+zip`.
+4. `GET /api/v1/download-hosts` → `{"hosts":[…]}` containing `www.ebooksgratuits.com`, `www.gutenberg.org`.
+5. `GET /api/v1/status` → every enabled source with `state` (`ok` after the first check, ~1 min after start).
+6. `GET /admin` → 303 to `/admin/login`; `GET /api/v1/admin/sources` without token → 401.
+7. Mail path (owner, once): `POST /api/v1/requests {"title":"Test smoke"}` → 202 and an e-mail arrives.
+   Not in the automatic smoke on purpose (it would e-mail the owner on every deploy).
 
 ## 4. What runs
 | Item | Value |
@@ -66,7 +95,13 @@ TODO (builder): one line per feature: request → expected shape/effect. Example
 | Edge | `/root/hosh-deploy/edge/traefik/dynamic/livres.yml` (router `livres@file`, resolver `le`, HSTS) |
 | Volume | docker volume `livres-data` → `/data` (in the monthly restic golden backup) |
 | Health | `GET /healthz` → `{"status":"ok", …}` |
-| Outbound | TODO (builder): external hosts the app calls, or "none" |
+| Outbound | HTTPS to the hosts listed in enabled `sources/*.json` (`www.ebooksgratuits.com`, `www.gutenberg.org`, `gutenberg.org`, `ws-export.wmcloud.org`, `fr.wikisource.org`, `upload.wikimedia.org`; candidates add `gallica.bnf.fr`, `*.feedbooks.*`) + the owner's SMTP server. The code refuses any other host (`livres.http.host_allowed`). Remaining exfiltration route: a malicious spec could add a host, which needs a reviewed PR or the admin token. |
 
 ## 5. Decisions / known limits
-TODO (builder).
+- ADRs in `docs/adr/`. Standard library only; sources as data; never re-host; alerts by mail + GitHub issues.
+- Port 9133 is the next free one in the registry as of 2026-10-31; the on-box session confirms it when
+  adding the registry line (`scripts/new-project.sh` would pick the same).
+- The French public-domain filter for Gutenberg uses death years only; war extensions ("morts pour la
+  France", e.g. Saint-Exupéry) are not modelled.
+- Candidate sources (Gallica, Feedbooks) are off until a live check passes (`AGENTS.md` P1a).
+- Single process, one scheduler thread; the first harvest runs at start (Gutenberg CSV ≈ 15 MB).

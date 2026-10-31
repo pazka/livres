@@ -1,0 +1,36 @@
+{
+  "links": [
+    {
+      "href": "https://livres.hosh.it/opds/v2/search?query=maupassant&page=2",
+      "rel": "self",
+      "type": "application/opds+json"
+    },
+    {
+      "href": "https://livres.hosh.it/opds/v2/catalog.json",
+      "rel": "start",
+      "type": "application/opds+json"
+    },
+    {
+      "href": "https://livres.hosh.it/opds/v2/search{?query}",
+      "rel": "search",
+      "templated": true,
+      "type": "application/opds+json"
+    },
+    {
+      "href": "https://livres.hosh.it/api/v1/download-hosts",
+      "rel": "https://livres.hosh.it/rel/download-hosts",
+      "type": "application/json"
+    },
+    {
+      "href": "https://livres.hosh.it/opds/v2/search?query=maupassant",
+      "rel": "previous",
+      "type": "application/opds+json"
+    }
+  ],
+  "metadata": {
+    "currentPage": 2,
+    "itemsPerPage": 2,
+    "title": "Résultats pour « maupassant »"
+  },
+  "publications": []
+}

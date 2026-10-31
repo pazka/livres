@@ -1,0 +1,18 @@
+{
+  "id": "feedbooks",
+  "name": "Feedbooks (domaine public)",
+  "kind": "opds1",
+  "homepage": "https://fr.feedbooks.com/",
+  "legal": "Feedbooks diffuse gratuitement une collection d'œuvres du domaine public ; les livres payants ou avec DRM du même catalogue sont filtrés automatiquement (prix, DRM).",
+  "modes": ["search"],
+  "config": {
+    "root_url": "https://fr.feedbooks.com/catalog",
+    "languages": ["fr"]
+  },
+  "allowed_hosts": ["fr.feedbooks.com", "www.feedbooks.com", "catalog.feedbooks.com", "*.feedbooks.net"],
+  "canary": {"query": "Jules Verne", "min_results": 1},
+  "enabled": false,
+  "priority": 45,
+  "status": "candidate",
+  "notes": "Candidate: OPDS root from liseuses.net, not verified from the sandbox. Feedbooks also sells books: the opds1 adapter keeps only open-access/free acquisition links without price or DRM. Enable after a passing live check."
+}

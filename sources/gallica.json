@@ -1,0 +1,18 @@
+{
+  "id": "gallica",
+  "name": "Gallica (BnF)",
+  "kind": "opds1",
+  "homepage": "https://gallica.bnf.fr/",
+  "legal": "Bibliothèque numérique de la Bibliothèque nationale de France : œuvres du domaine public numérisées, consultables et téléchargeables gratuitement.",
+  "modes": ["search"],
+  "config": {
+    "root_url": "https://gallica.bnf.fr/opds",
+    "languages": ["fr"]
+  },
+  "allowed_hosts": ["gallica.bnf.fr"],
+  "canary": {"query": "Les Misérables", "min_results": 1},
+  "enabled": false,
+  "priority": 40,
+  "status": "candidate",
+  "notes": "Candidate: Gallica's OPDS root is listed by liseuses.net but could not be fetched from the build sandbox. The search template is discovered from the root (rel=search). Enable once `python -m livres.cli check --source gallica` passes (AGENTS.md P1a). Gallica re-use of its documents for non-commercial purposes is free; many items are PDF only, which the app marks orange."
+}

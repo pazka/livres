@@ -1,0 +1,91 @@
+{
+  "links": [
+    {
+      "href": "https://livres.hosh.it/opds/v2/catalog.json",
+      "rel": "self",
+      "type": "application/opds+json"
+    },
+    {
+      "href": "https://livres.hosh.it/opds/v2/catalog.json",
+      "rel": "start",
+      "type": "application/opds+json"
+    },
+    {
+      "href": "https://livres.hosh.it/opds/v2/search{?query}",
+      "rel": "search",
+      "templated": true,
+      "type": "application/opds+json"
+    },
+    {
+      "href": "https://livres.hosh.it/api/v1/download-hosts",
+      "rel": "https://livres.hosh.it/rel/download-hosts",
+      "type": "application/json"
+    }
+  ],
+  "metadata": {
+    "description": "Livres du domaine public et catalogues gratuits officiels, en français, sans DRM.",
+    "title": "Livres gratuits et légaux"
+  },
+  "navigation": [
+    {
+      "href": "https://livres.hosh.it/opds/v2/search?query=Victor%20Hugo",
+      "rel": "subsection",
+      "title": "Victor Hugo",
+      "type": "application/opds+json"
+    },
+    {
+      "href": "https://livres.hosh.it/opds/v2/search?query=Jules%20Verne",
+      "rel": "subsection",
+      "title": "Jules Verne",
+      "type": "application/opds+json"
+    },
+    {
+      "href": "https://livres.hosh.it/opds/v2/search?query=Alexandre%20Dumas",
+      "rel": "subsection",
+      "title": "Alexandre Dumas",
+      "type": "application/opds+json"
+    },
+    {
+      "href": "https://livres.hosh.it/opds/v2/search?query=%C3%89mile%20Zola",
+      "rel": "subsection",
+      "title": "Émile Zola",
+      "type": "application/opds+json"
+    },
+    {
+      "href": "https://livres.hosh.it/opds/v2/search?query=Guy%20de%20Maupassant",
+      "rel": "subsection",
+      "title": "Guy de Maupassant",
+      "type": "application/opds+json"
+    },
+    {
+      "href": "https://livres.hosh.it/opds/v2/search?query=Honor%C3%A9%20de%20Balzac",
+      "rel": "subsection",
+      "title": "Honoré de Balzac",
+      "type": "application/opds+json"
+    },
+    {
+      "href": "https://livres.hosh.it/opds/v2/search?query=George%20Sand",
+      "rel": "subsection",
+      "title": "George Sand",
+      "type": "application/opds+json"
+    },
+    {
+      "href": "https://livres.hosh.it/opds/v2/search?query=Gustave%20Flaubert",
+      "rel": "subsection",
+      "title": "Gustave Flaubert",
+      "type": "application/opds+json"
+    },
+    {
+      "href": "https://livres.hosh.it/opds/v2/search?query=Jean%20de%20La%20Fontaine",
+      "rel": "subsection",
+      "title": "Jean de La Fontaine",
+      "type": "application/opds+json"
+    },
+    {
+      "href": "https://livres.hosh.it/opds/v2/search?query=Comtesse%20de%20S%C3%A9gur",
+      "rel": "subsection",
+      "title": "Comtesse de Ségur",
+      "type": "application/opds+json"
+    }
+  ]
+}

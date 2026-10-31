@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <id>https://www.ebooksgratuits.com/opds/index.php</id>
+  <title>Ebooks libres et gratuits - Catalogue des livres</title>
+  <updated>2026-10-31T10:00:00Z</updated>
+  <link rel="self" type="application/atom+xml" href="https://www.ebooksgratuits.com/opds/index.php"/>
+  <link rel="start" type="application/atom+xml" href="https://www.ebooksgratuits.com/opds/index.php"/>
+  <link rel="search" type="application/opensearchdescription+xml" href="/opds/opensearch.xml"/>
+  <entry>
+    <id>latest</id><title>Dernières parutions</title><updated>2026-10-31T10:00:00Z</updated>
+    <link type="application/atom+xml" href="https://www.ebooksgratuits.com/opds/feed.php"/>
+  </entry>
+</feed>

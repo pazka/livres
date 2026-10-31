@@ -1,0 +1,75 @@
+name: sources-canary
+
+# Daily live check of every source from GitHub (independent of the box), plus the production view
+# (https://livres.hosh.it/api/v1/status). Broken sources get a `source-down` issue: the work queue
+# for agents (AGENTS.md P2). Recovered sources get their issue closed. Passing candidates get a
+# `source-candidate-ok` issue (P1a). Repo variable LIVRES_AGENT_MENTION (e.g. "@claude") is appended
+# to new issues to wake an agent automatically; leave it unset to triage by hand.
+on:
+  schedule:
+    - cron: "17 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: sources-canary
+  cancel-in-progress: false
+
+jobs:
+  canary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - name: Live canaries (robots.txt honoured, 1 request/s/host)
+        env:
+          PYTHONPATH: src
+        run: |
+          python -m livres.cli check --include-candidates --json > report.json || true
+          cat report.json
+      - name: Production view
+        run: curl -fsS --max-time 20 https://livres.hosh.it/api/v1/status > prod.json || echo '{}' > prod.json
+      - name: Open / update / close issues
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MENTION: ${{ vars.LIVRES_AGENT_MENTION }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          PYTHONPATH: src
+        run: |
+          set -euo pipefail
+          for l in source-down source-candidate-ok; do gh label create "$l" --force --color B60205 >/dev/null 2>&1 || true; done
+          gh issue list --state open --limit 200 --json number,title,labels > issues.json
+          python -m livres.canary plan report.json prod.json issues.json "${MENTION:-}" "$RUN_URL" > actions.json
+          python - <<'PY'
+          import json, subprocess
+          for a in json.load(open("actions.json")):
+              if a["action"] == "open":
+                  cmd = ["gh", "issue", "create", "--title", a["title"], "--body", a["body"]]
+                  for label in a["labels"]:
+                      cmd += ["--label", label]
+              elif a["action"] == "comment":
+                  cmd = ["gh", "issue", "comment", str(a["number"]), "--body", a["body"]]
+              else:
+                  cmd = ["gh", "issue", "close", str(a["number"]), "--comment", a["body"]]
+              print("+", " ".join(cmd[:4]))
+              subprocess.run(cmd, check=True)
+          PY
+      - name: Summary
+        if: always()
+        run: |
+          python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          try:
+              rows = json.load(open("report.json"))
+          except Exception:
+              rows = []
+          print("| source | status | result | detail |\n|---|---|---|---|")
+          for r in rows:
+              print(f"| {r['id']} | {r['status']}{'' if r['enabled'] else ' (off)'} | {'✅' if r['ok'] else '❌'} | {r['detail'][:120]} |")
+          PY

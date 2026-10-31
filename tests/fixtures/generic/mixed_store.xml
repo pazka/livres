@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:opds="http://opds-spec.org/2010/catalog" xmlns:dc="http://purl.org/dc/terms/">
+  <id>mixed</id><title>Mixed store</title><updated>2026-10-31T00:00:00Z</updated>
+  <entry>
+    <id>free-1</id><title>Le Comte de Monte-Cristo</title><author><name>Alexandre Dumas</name></author>
+    <updated>2026-10-31T00:00:00Z</updated>
+    <link rel="http://opds-spec.org/acquisition/open-access" type="application/epub+zip" href="/free/1.epub"/>
+    <link rel="http://opds-spec.org/image/thumbnail" type="image/png" href="/thumbs/1.png"/>
+  </entry>
+  <entry>
+    <id>paid-1</id><title>Un roman récent</title><author><name>Auteur Vivant</name></author>
+    <updated>2026-10-31T00:00:00Z</updated>
+    <link rel="http://opds-spec.org/acquisition/buy" type="application/epub+zip" href="/buy/1"><opds:price currencycode="EUR">9.99</opds:price></link>
+  </entry>
+  <entry>
+    <id>priced-1</id><title>Un autre roman</title><author><name>Auteur Vivant</name></author>
+    <updated>2026-10-31T00:00:00Z</updated>
+    <link rel="http://opds-spec.org/acquisition" type="application/epub+zip" href="/get/2"><opds:price currencycode="EUR">4,99</opds:price></link>
+  </entry>
+  <entry>
+    <id>drm-1</id><title>Gratuit mais protégé</title><author><name>Éditeur</name></author>
+    <updated>2026-10-31T00:00:00Z</updated>
+    <link rel="http://opds-spec.org/acquisition" type="application/vnd.adobe.adept+xml" href="/drm/1.acsm"/>
+    <link rel="http://opds-spec.org/acquisition/open-access" type="application/atom+xml" href="/drm/2">
+      <opds:indirectAcquisition type="application/vnd.adobe.adept+xml"><opds:indirectAcquisition type="application/epub+zip"/></opds:indirectAcquisition>
+    </link>
+  </entry>
+  <entry>
+    <id>borrow-1</id><title>À emprunter</title><author><name>Éditeur</name></author>
+    <updated>2026-10-31T00:00:00Z</updated>
+    <link rel="http://opds-spec.org/acquisition/borrow" type="application/epub+zip" href="/borrow/1"/>
+  </entry>
+</feed>

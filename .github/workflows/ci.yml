@@ -21,12 +21,19 @@ env:
   TRIVY_IMAGE: mirror.gcr.io/aquasec/trivy:0.75.0@sha256:af6acf9a6b85dfe389a1941505c0ce9efef52a4719635e1a962f022a3d855daa
 
 jobs:
-  test:   # adapt to the stack (pytest / npm test / go test …); keep it blocking
+  test:   # standard library only: nothing to install
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - run: |
-          echo "TODO (builder): run the test suite" && false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - name: Byte-compile (syntax gate)
+        run: python -m compileall -q src tests
+      - name: Source registry is valid
+        run: PYTHONPATH=src python -m livres.cli validate
+      - name: Unit, integration, end-to-end and contract tests
+        run: python -m unittest discover -s tests -t tests -v
 
   image:
     needs: test
@@ -57,9 +64,12 @@ jobs:
       - name: Container smoke (same hardening as the box)
         run: |
           docker run -d --name smoke --read-only --tmpfs /tmp --cap-drop ALL --user 10001:10001 \
-            --security-opt no-new-privileges:true -v smoke-data:/data -p 127.0.0.1:8000:8000 livres:scan
+            --security-opt no-new-privileges:true -e LIVRES_SCHEDULER=off \
+            -v smoke-data:/data -p 127.0.0.1:8000:8000 livres:scan
           for i in $(seq 1 30); do curl -fsS http://127.0.0.1:8000/healthz && break; sleep 2; done
           curl -fsS http://127.0.0.1:8000/healthz | python3 -c 'import json,sys; assert json.load(sys.stdin)["status"]=="ok"'
+          # capability smoke inside the hardened container (same command hosh-deploy runs after a deploy)
+          docker exec smoke python -m livres.cli smoke http://127.0.0.1:8000
           docker logs smoke | tail -n 20
           docker rm -f smoke
 

@@ -1,0 +1,18 @@
+{
+  "id": "ebooksgratuits",
+  "name": "Ebooks libres et gratuits",
+  "kind": "opds1",
+  "homepage": "https://www.ebooksgratuits.com/",
+  "legal": "Œuvres du domaine public relues et mises en forme par des bénévoles, diffusées gratuitement par le site lui-même, sans DRM ni compte.",
+  "modes": ["search"],
+  "config": {
+    "root_url": "https://www.ebooksgratuits.com/opds/index.php",
+    "search_url": "https://www.ebooksgratuits.com/opds/feed.php?mode=search&query={searchTerms}",
+    "languages": ["fr"]
+  },
+  "allowed_hosts": ["www.ebooksgratuits.com"],
+  "canary": {"query": "Maupassant", "min_results": 3},
+  "priority": 10,
+  "status": "verified",
+  "notes": "Official OPDS 1.2 catalogue (opds/index.php, OpenSearch at opds/opensearch.xml). Each entry offers EPUB, MOBI, PDF and a ZIP. Structure checked 2026-10-31."
+}

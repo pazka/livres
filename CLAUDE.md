@@ -1,6 +1,15 @@
 # CLAUDE.md — pazka/livres
 
-Build the project specified in `BRIEF.md` (read it fully first). Owner: Alexandre (pazka).
+Legal French ebook catalogue (OPDS 2.0) for "Ma liseuse", the owner's mother's Kindle app. Spec:
+`BRIEF.md`. **Maintenance protocols (add / fix / remove a source, release): `AGENTS.md`** — read it
+before any change. Architecture: `docs/ARCHITECTURE.md`. Sources and why: `docs/SOURCES.md`.
+Owner: Alexandre (pazka).
+
+Quick commands (Python 3.13, standard library only, nothing to install):
+- tests: `python -m unittest discover -s tests -t tests`
+- registry: `PYTHONPATH=src python -m livres.cli validate`
+- live check of a source: `PYTHONPATH=src python -m livres.cli check --source <id>`
+- run locally: `LIVRES_DATA_DIR=./data LIVRES_SOURCES_DIR=./sources PYTHONPATH=src python -m livres`
 Target: **https://livres.hosh.it** on the owner's hosh.it box. **`docs/BOX-CONTRACT.md` is binding**:
 an app that follows it deploys first try. Values already fixed for this project:
 
@@ -34,7 +43,7 @@ an app that follows it deploys first try. Values already fixed for this project:
 - Never commit secrets, `*.env`, databases, exports. Never install MCP servers.
 - Owner secrets (admin password, API keys) are set by an interactive owner-run script that writes
   the env file; nothing secret is printed, logged or passed on a command line.
-- Commit in small, clearly described steps on `main`.
+- Small conventional commits (`feat:`, `fix:`, `test:`…), PRs to `main` with green CI (AGENTS.md ground rules).
 
 ## If you are the on-box deployment session (production server)
 - Box rules (`/home/pazka/MIGRATION/CLAUDE.md`): `ACTIONS-LOG.md` intent BEFORE + result/revert
