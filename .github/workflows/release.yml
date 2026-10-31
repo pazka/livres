@@ -73,7 +73,7 @@ jobs:
               --db-repository mirror.gcr.io/aquasec/trivy-db,ghcr.io/aquasecurity/trivy-db \
               livres:scan
 
-      - uses: docker/login-action@v3
+      - uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
