@@ -22,18 +22,18 @@ check fails (the workflow then goes red). Nothing from the repo runs on the host
 
 Box rules: `ACTIONS-LOG.md` intent BEFORE, result + revert AFTER; `/home/pazka/MIGRATION/scripts/smoke.sh`
 BEFORE and AFTER. Prerequisites done by `scripts/new-project.sh` + the on-box session: DNS record,
-port registered in `11-BOX-STANDARD.md`, a `v0.1.0` release built.
+port registered in `11-BOX-STANDARD.md`, a `v0.2.0` release built.
 
 ```sh
 # A — release checkout (provides docker-compose.example.yml, .env.example, deploy/*)
 sudo mkdir -p /srv/livres && sudo chmod 750 /srv/livres && cd /srv/livres
 [ -d .git ] || { sudo git init -q && sudo git remote add origin https://github.com/pazka/livres; }
-sudo git fetch -q --depth 1 origin tag v0.1.0 && sudo git checkout -q v0.1.0
+sudo git fetch -q --depth 1 origin tag v0.2.0 && sudo git checkout -q v0.2.0
 # B — env file from the template (no secret in it yet); never read it after step C
 [ -e livres.env ] || sudo install -m 600 .env.example livres.env
 ```
 **C — owner: secrets** (in your own SSH terminal; the image must be pulled first:
-`sudo docker pull ghcr.io/pazka/livres:v0.1.0`):
+`sudo docker pull ghcr.io/pazka/livres:v0.2.0`):
 `sudo bash /srv/livres/scripts/set-secrets.sh /srv/livres/livres.env`
 It asks for the admin password (hashed inside the image, offline), generates the agent API token (shown
 once: store it as the GitHub secret `LIVRES_ADMIN_TOKEN` and in your password manager), and asks for the
@@ -41,7 +41,7 @@ SMTP settings used for book requests and source alerts (a Gmail app password wor
 ```sh
 # D — pin the box config (validates the compose hardening), first deploy (writes the Traefik route)
 sudo hosh-deploy register livres
-sudo hosh-deploy deploy livres v0.1.0
+sudo hosh-deploy deploy livres v0.2.0
 # E — GitHub key for auto-deploys (claude_agent: keygen; root: bind; gh: secret; private key shredded)
 ssh-keygen -q -t ed25519 -N '' -C hosh-deploy:livres -f /tmp/livres-deploy
 sudo /home/pazka/MIGRATION/scripts/setup-hosh-deploy.sh key livres /tmp/livres-deploy.pub
@@ -70,7 +70,7 @@ failed meanwhile stay in the outbox and go out with the new settings. Check: `/a
 ## 2. Variables (`livres.env`, mode 600)
 | Variable | Default | Set by | Meaning |
 |---|---|---|---|
-| `APP_IMAGE` | `ghcr.io/pazka/livres:v0.1.0` | hosh-deploy | release tag in use |
+| `APP_IMAGE` | `ghcr.io/pazka/livres:v0.2.0` | hosh-deploy | release tag in use |
 | `APP_BIND` | `127.0.0.1:9133` | box | loopback port |
 | `APP_TRUSTED_PROXIES` | `127.0.0.0/8,::1/128,172.16.0.0/12` | box | peers whose `X-Forwarded-For` is believed |
 | `APP_BASE_URL` | `https://livres.hosh.it` | box | absolute links in feeds and mails |
