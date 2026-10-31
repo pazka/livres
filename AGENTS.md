@@ -131,6 +131,15 @@ Additive only (new optional field, new endpoint). Run `LIVRES_UPDATE_CONTRACT=1 
 discover -s tests -t tests -p test_contract.py`, review the `contract/` diff, describe it in the PR so
 the app (repo `pazka/kindle-for-mom`) can copy the golden files into its tests.
 
+## P7 — Dependency updates (Dependabot)
+
+Owner's standing rule: **always merge Dependabot PRs that are safe and tested**, to stay on the latest
+versions for security. "Safe and tested" = CI green on the PR's current head (tests, image build, Trivy
+gate, hardened container smoke) and no conflict. If two Dependabot PRs conflict after one merges,
+comment `@dependabot rebase` on the other and merge it once green. A red Dependabot PR is a normal
+failure to root-cause (P2 rules apply: never skip a test); a major bump that breaks the build gets a fix
+PR or a note to the owner explaining why it waits.
+
 ## P6 — Book requests
 
 Requests arrive by e-mail to the owner and in `/admin/requests`. Agents may search legal sources for a
