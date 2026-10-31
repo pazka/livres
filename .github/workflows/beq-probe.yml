@@ -22,24 +22,15 @@ jobs:
           H = ("beq.ebooksgratuits.com",)
           r = c.get("https://beq.ebooksgratuits.com/robots.txt", allowed_hosts=H) if True else None
           print("=== robots", r.status, r.headers.get("content-type")); print(r.body.decode("latin-1")[:3000].replace(chr(10)," | "))
-          import json
-          for host in ("www.wikidata.org", "fr.wikipedia.org"):
+          import base64
+          for p in ["vents/index.htm", "vents/zola.htm", "vents/Maupassant.htm"]:
+              r = c.get("https://beq.ebooksgratuits.com/" + p, allowed_hosts=H)
+              b = base64.b64encode(r.body).decode()
+              print("=== B64", p, len(r.body))
+              for i in range(0, len(b), 4000):
+                  print("B64LINE", b[i:i+4000])
+              print("=== END", p)
+          for host in ("www.ebooksgratuits.com",):
               r = c.get(f"https://{host}/robots.txt", allowed_hosts=(host,))
-              t = r.body.decode("utf-8", "replace")
-              print("=== ROBOTS", host, len(t))
-              block = False
-              for line in t.splitlines():
-                  if line.lower().startswith("user-agent"):
-                      block = line.split(":",1)[1].strip() == "*"
-                  if block or "api" in line.lower():
-                      print("  ", line)
-          for u in ["https://fr.wikipedia.org/w/api.php?action=query&format=json&prop=pageprops&ppprop=wikibase_item&redirects=1&titles=Am%C3%A9d%C3%A9e_Achard%7CLaure_Junot_d%27Abrant%C3%A8s",
-                    "https://www.wikidata.org/w/api.php?action=wbgetentities&format=json&props=claims&ids=Q2842470"]:
-              h = (u.split("/")[2],)
-              print("=== CAN", u, c.allowed_by_robots(u, h))
-              try:
-                  r = c.get(u, allowed_hosts=h)
-                  print(r.body[:1500].decode())
-              except Exception as e:
-                  print("FAIL", e)
+              print("=== ROBOTS", host, r.body[:2000].decode("latin-1").replace(chr(10), " | "))
           PY
