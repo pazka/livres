@@ -1,0 +1,32 @@
+name: beq-probe (temporary, removed before merge)
+on:
+  push:
+    branches: [claude/project-thread-czlc0k]
+    paths: [.github/workflows/beq-probe.yml]
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - env:
+          PYTHONPATH: src
+        run: |
+          python - <<'PY'
+          from livres.http import PoliteHttpClient
+          c = PoliteHttpClient("LivresHoshBot/0.1 (+https://livres.hosh.it/robots-info)")
+          H = ("beq.ebooksgratuits.com",)
+          r = c.get("https://beq.ebooksgratuits.com/robots.txt", allowed_hosts=H) if True else None
+          print("=== robots", r.status, r.headers.get("content-type")); print(r.body.decode("latin-1")[:3000])
+          for p in ["", "vents/index.htm", "classiques/index.htm", "balzac/index.htm"]:
+              try:
+                  r = c.get("https://beq.ebooksgratuits.com/" + p, allowed_hosts=H)
+                  print("=== PAGE", p, r.status, r.headers.get("content-type"), len(r.body))
+                  print(r.body[:9000].decode("latin-1"))
+              except Exception as e:
+                  print("=== FAIL", p, e)
+          PY
