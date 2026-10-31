@@ -28,6 +28,8 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
+      - name: Dependabot merge policy (self-test)
+        run: bash .github/scripts/dependabot-merge.sh self-test
       - name: Byte-compile (syntax gate)
         run: python -m compileall -q src tests
       - name: Source registry is valid

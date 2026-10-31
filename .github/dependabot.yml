@@ -1,10 +1,19 @@
+# Dependency updates (box standard, hosh-migration 11-BOX-STANDARD.md §2). Owner's rule: stay on
+# the latest library versions for security. Updates wait 7 days after a release (Decision #17);
+# security updates come at once. Minor and patch updates are grouped per ecosystem and merged by
+# workflows/dependabot-merge.yml once CI is green; majors stay open with "needs-review".
+# Standard library only: no pip ecosystem to watch.
 version: 2
 updates:
   - package-ecosystem: docker
     directory: /
-    schedule: { interval: weekly }
+    schedule: { interval: weekly, day: monday }
     cooldown: { default-days: 7 }
+    groups:
+      minor-and-patch: { update-types: [minor, patch] }
   - package-ecosystem: github-actions
     directory: /
-    schedule: { interval: weekly }
+    schedule: { interval: weekly, day: monday }
     cooldown: { default-days: 7 }
+    groups:
+      minor-and-patch: { update-types: [minor, patch] }
