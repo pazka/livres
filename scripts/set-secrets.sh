@@ -48,19 +48,49 @@ set_var LIVRES_ADMIN_TOKEN_SHA256 "$sha"
 fi
 
 echo "== Mail (book requests and source alerts are sent to you)"
-set_var LIVRES_OWNER_EMAIL "$(ask 'Your e-mail (recipient): ')"
-set_var LIVRES_MAIL_FROM "$(ask 'Sender address (From): ')"
-set_var LIVRES_SMTP_HOST "$(ask 'SMTP host (e.g. smtp.gmail.com): ')"
-port="$(ask 'SMTP port [587]: ')"; set_var LIVRES_SMTP_PORT "${port:-587}"
-tls="$(ask 'TLS mode starttls|ssl|none [starttls]: ')"; set_var LIVRES_SMTP_TLS "${tls:-starttls}"
-set_var LIVRES_SMTP_USER "$(ask 'SMTP user: ')"
-set_var LIVRES_SMTP_PASSWORD "$(ask_secret 'SMTP password (e.g. a Gmail app password): ')"
+# Every answer is checked before anything is written, so a typo can't leave a half-broken mail setup.
+email_ok() { case "$1" in *@*.*) case "$1" in *" "*) return 1 ;; esac; return 0 ;; *) return 1 ;; esac; }
+ask_until() {  # ask_until PROMPT CHECK_FN MESSAGE [DEFAULT]
+  local v
+  while :; do
+    v="$(ask "$1")"; v="${v:-${4:-}}"
+    "$2" "$v" && { printf '%s' "$v"; return; }
+    echo "$3" >&2
+  done
+}
+nonempty() { [ -n "$1" ] && case "$1" in *" "*) return 1 ;; esac; }
+port_ok() { case "$1" in ''|*[!0-9]*) return 1 ;; esac; [ "$1" -ge 1 ] && [ "$1" -le 65535 ]; }
+tls_ok() { case "$1" in starttls|ssl|none) return 0 ;; *) return 1 ;; esac; }
+owner="$(ask_until 'Your e-mail (recipient): ' email_ok 'enter a full e-mail address')"
+from="$(ask_until 'Sender address (From): ' email_ok 'enter a full e-mail address')"
+host="$(ask_until 'SMTP host (e.g. smtp.gmail.com): ' nonempty 'the SMTP host is required (Gmail: smtp.gmail.com)')"
+port="$(ask_until 'SMTP port [587]: ' port_ok 'enter a port number (Gmail: 587)' 587)"
+tls="$(ask_until 'TLS mode starttls|ssl|none [starttls]: ' tls_ok 'enter starttls, ssl or none' starttls)"
+while :; do
+  user="$(ask_until 'SMTP user (Gmail: your full address): ' nonempty 'the SMTP user is required')"
+  case "$host" in *gmail.com|*googlemail.com) email_ok "$user" || { echo "Gmail needs the full address as user (e.g. $from)" >&2; continue; } ;; esac
+  break
+done
+while :; do
+  smtp_pw="$(ask_secret 'SMTP password (Gmail: a 16-letter app password, not your normal password): ')"
+  [ -n "$smtp_pw" ] && break
+  echo "the SMTP password is required" >&2
+done
+set_var LIVRES_OWNER_EMAIL "$owner"
+set_var LIVRES_MAIL_FROM "$from"
+set_var LIVRES_SMTP_HOST "$host"
+set_var LIVRES_SMTP_PORT "$port"
+set_var LIVRES_SMTP_TLS "$tls"
+set_var LIVRES_SMTP_USER "$user"
+set_var LIVRES_SMTP_PASSWORD "$smtp_pw"
+unset smtp_pw
 
 if [ "$MAIL_ONLY" = 1 ]; then
   echo
   echo "Mail settings saved. Apply them by redeploying the running version (no new release needed):"
   echo "  sudo hosh-deploy status livres            # shows the version in use"
   echo "  sudo hosh-deploy deploy livres vX.Y.Z     # same version: restarts with the new settings"
+  echo "  (or on GitHub: Actions → deploy → vX.Y.Z)"
   echo "Messages that could not be sent are kept in the outbox and retried with the new settings."
   exit 0
 fi
@@ -70,4 +100,6 @@ echo "  GitHub: gh secret set LIVRES_ADMIN_TOKEN -R pazka/livres   (paste it)"
 echo
 echo "  $token"
 echo
-echo "Then: sudo hosh-deploy register livres  (or restart the container if already deployed)."
+echo "Then: sudo hosh-deploy register livres  (first install), or if livres already runs:"
+echo "  sudo hosh-deploy deploy livres vX.Y.Z  (the version in use, see: sudo hosh-deploy status livres),"
+echo "  or GitHub: Actions → deploy → vX.Y.Z"
