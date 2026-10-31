@@ -21,6 +21,7 @@ config keys:
 
 from __future__ import annotations
 
+import collections
 import csv
 import datetime
 import html.parser
@@ -176,24 +177,33 @@ def author_key(name: str) -> str:
 
 
 def french_public_domain_authors(catalog_csv: str, this_year: int | None = None) -> set[str]:
-    """Author keys from Gutenberg's catalogue who (a) wrote at least one French book without a translator
-    and (b) died at least 71 years ago (same rule as the Gutenberg source)."""
+    """Author keys from Gutenberg's catalogue who (a) write in French: French is the language of more of
+    their Gutenberg books than any other language (ties refused) (Gutenberg's French Conan Doyle or Wilde are uncredited translations, which this
+    rules out), and (b) died at least 71 years ago (same rule as the Gutenberg source, incl. "morts pour
+    la France")."""
     reader = csv.DictReader(io.StringIO(catalog_csv))
     if not reader.fieldnames or not {"Language", "Authors"}.issubset(reader.fieldnames):
         raise SourceError("parse", "lifespans: unexpected Gutenberg CSV header")
     year = this_year or datetime.date.today().year
-    keep: set[str] = set()
+    languages: dict[str, collections.Counter] = {}
+    eligible: set[str] = set()
     for row in reader:
-        if "fr" not in {c.strip() for c in (row.get("Language") or "").split(";")}:
-            continue
-        people = [a.strip() for a in (row.get("Authors") or "").split(";") if a.strip()]
-        if not people or any("[" in a for a in people):
-            continue  # translated, edited, illustrated...: not proof the author wrote it in French
-        for person in people:
+        langs = {c.strip() for c in (row.get("Language") or "").split(";") if c.strip()}
+        for person in (a.strip() for a in (row.get("Authors") or "").split(";")):
+            if not person or "[" in person:
+                continue  # translators, editors, illustrators: not the author
+            key = author_key(person)
+            if not key:
+                continue
+            languages.setdefault(key, collections.Counter()).update(langs)
             if public_domain_in_france(person, year):
-                key = author_key(person)
-                if key:
-                    keep.add(key)
+                eligible.add(key)
+    keep = set()
+    for key in eligible:
+        counts = languages.get(key)
+        fr = counts.get("fr", 0) if counts else 0
+        if fr and all(fr > n for lang, n in counts.items() if lang != "fr"):
+            keep.add(key)
     return keep
 
 
@@ -255,7 +265,8 @@ class BeqHtmlAdapter(SourceAdapter):
             if not ({"application/epub+zip", "application/x-mobipocket-ebook"} & e.links.keys()):
                 continue  # Mom's Kindle needs EPUB or MOBI; PDF-only entries are skipped
             title = e.title
-            if not title or len(title) > 300 or ", par " in title.lower():
+            low = title.lower()
+            if not title or len(title) > 300 or ", par " in low or "trad." in low or "traduction" in low:
                 continue
             main = e.links.get("application/epub+zip") or e.links["application/x-mobipocket-ebook"]
             path = urllib.parse.urlsplit(main).path.strip("/")

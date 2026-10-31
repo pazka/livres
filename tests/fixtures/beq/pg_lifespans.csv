@@ -10,3 +10,7 @@ Text#,Type,Issued,Title,Language,Authors,Subjects,LoCC,Bookshelves
 1009,Text,2004-01-01,Le Feu,fr,"Adam, Paul, 1862-1920",Fiction,PQ,
 1010,Text,2004-01-01,Un roman récent,fr,"Ages, Lucie des, 1950-",Fiction,PQ,
 1011,Text,2004-01-01,Regain,fr,"Giono, Jean, 1895-1970",Fiction,PQ,
+1012,Text,2004-01-01,La Ceinture empoisonnée,fr,"Doyle, Arthur Conan, 1859-1930",Fiction,PR,
+1013,Text,2004-01-01,The Poison Belt,en,"Doyle, Arthur Conan, 1859-1930",Fiction,PR,
+1014,Text,2004-01-01,A Study in Scarlet,en,"Doyle, Arthur Conan, 1859-1930",Fiction,PR,
+1015,Text,2004-01-01,Terre des hommes,fr,"Saint-Exupéry, Antoine de, 1900-1944",Fiction,PQ,

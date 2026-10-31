@@ -7,7 +7,8 @@ Last reviewed: 2026-10-31 (Wikisource disabled, BEQ added). Machine-readable tru
 A source is acceptable only if **all** of these hold:
 
 1. **Legal**: works in the public domain *in France* (author and translator dead for more than 70 years;
-   war extensions can add up to ~30 years for some authors), or offered for free by the rights holder or
+   authors "morts pour la France" get 30 more years: `MORTS_POUR_LA_FRANCE` in `sources/gutenberg.py`
+   lists the known ones and is applied by every filter), or offered for free by the rights holder or
    an official distributor.
 2. **Directly usable by Mom**: no account, no DRM (Adobe ADEPT, LCP…), no app lock-in. EPUB preferred,
    MOBI fine, PDF tolerated (the app marks it orange).
@@ -20,7 +21,7 @@ A source is acceptable only if **all** of these hold:
 |---|---|---|---|
 | `ebooksgratuits` | Ebooks libres et gratuits | Official OPDS 1.2, live search (`opds/feed.php?mode=search`) | Public-domain texts proofread by volunteers, free on their own site, EPUB/MOBI/PDF without DRM |
 | `gutenberg` | Project Gutenberg | Weekly `pg_catalog.csv` (Gutenberg asks tools to use it instead of crawling), harvested into the local index; French books only, **filtered to French public domain** (all authors/translators died ≥ 71 years ago) | US public domain; the filter removes books still protected in France |
-| `beq` | Bibliothèque électronique du Québec | Static collection pages (`vents`, `classiques`, `pdf`) parsed weekly: no OPDS or catalogue file exists, the owner allowed HTML parsing on 2026-10-31. robots.txt `Crawl-delay: 10` honoured | Public-domain texts, free EPUB/MOBI without DRM. BEQ follows Canadian law (life + 50), so the adapter keeps only **French-language authors dead for 71+ years** according to Gutenberg's catalogue, and only when the file name matches the author heading; anthologies, translations and unknown authors are left out |
+| `beq` | Bibliothèque électronique du Québec | Static collection pages (`vents`, `classiques`, `pdf`) parsed weekly: no OPDS or catalogue file exists, the owner allowed HTML parsing on 2026-10-31. robots.txt `Crawl-delay: 10` honoured | Public-domain texts, free EPUB/MOBI without DRM. BEQ follows Canadian law (life + 50), so the adapter keeps only **French-language authors dead for 71+ years** according to Gutenberg's catalogue (French must be the language of most of their Gutenberg books, so uncredited translations such as Gutenberg's French Conan Doyle are excluded), and only when the file name matches the author heading; anthologies, translations and unknown authors are left out |
 
 ## Candidates (shipped disabled, enable after a passing live check — AGENTS.md P1a)
 

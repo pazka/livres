@@ -27,10 +27,28 @@ from .base import SourceAdapter, SourceError
 _LIFESPAN = re.compile(r"(\d{1,4})?\??\s*(BCE)?\s*-\s*(\d{1,4})?\??\s*(BCE)?")
 _ANONYMOUS = ("anonymous", "unknown", "various", "anonyme")
 
+# Authors "morts pour la France" get 30 more years of protection in France (CPI art. L123-10). This list
+# is a floor of well-known writers still affected (death + 100 years not reached); add names when found.
+# Keys are "surname firstname" folded (no accents, lowercase).
+MORTS_POUR_LA_FRANCE = frozenset({
+    "saint exupery antoine de", "desnos robert", "jacob max", "prevost jean", "fondane benjamin",
+    "nemirovsky irene", "bloch marc", "cavailles jean", "politzer georges", "decour jacques",
+    "rabearivelo jean joseph", "pergaud louis", "alain fournier", "peguy charles", "apollinaire guillaume",
+    "psichari ernest", "nizan paul", "hyvernaud georges",
+})
+MORT_POUR_LA_FRANCE_EXTRA_YEARS = 30
+
+
+def _person_key(author: str) -> str:
+    from ..domain import fold  # local import keeps the module import graph flat
+    parts = [p for p in author.split(",") if p.strip() and not re.search(r"\d", p) and "[" not in p]
+    return fold(",".join(parts[:2]))
+
 
 def public_domain_in_france(authors_field: str, this_year: int | None = None) -> bool:
     """'Hugo, Victor, 1802-1885; Doe, John, 1900-1990 [Translator]' -> False in 2026 (Doe died < 71 years ago).
 
+    Authors "morts pour la France" (MORTS_POUR_LA_FRANCE) need 30 more years.
     Conservative: an author with no death year (alive, or unknown dates) makes the book ineligible,
     except anonymous works."""
     cutoff = (this_year or datetime.date.today().year) - 71
@@ -50,7 +68,10 @@ def public_domain_in_france(authors_field: str, this_year: int | None = None) ->
             return False
         if match.group(4):  # died BCE
             continue
-        if int(death) > cutoff:
+        limit = cutoff
+        if _person_key(author) in MORTS_POUR_LA_FRANCE:
+            limit -= MORT_POUR_LA_FRANCE_EXTRA_YEARS
+        if int(death) > limit:
             return False
     return True
 

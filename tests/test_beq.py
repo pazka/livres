@@ -71,6 +71,8 @@ class LegalFilterTests(unittest.TestCase):
         self.assertNotIn(author_key("Giono, Jean"), self.allowed, "died 1970: protected in France until 2041")
         self.assertNotIn(author_key("Ages, Lucie des"), self.allowed, "no death year")
         self.assertNotIn(author_key("Alcott, Louisa May"), self.allowed, "English author: BEQ text is a translation")
+        self.assertNotIn(author_key("Doyle, Arthur Conan"), self.allowed, "uncredited French translation on Gutenberg")
+        self.assertNotIn(author_key("Saint-Exupéry, Antoine de"), self.allowed, "mort pour la France: +30 years")
 
     def test_file_name_must_match_the_heading(self):
         entries = parse_page(fixture("beq/classiques.htm"), CLASSIQUES)
