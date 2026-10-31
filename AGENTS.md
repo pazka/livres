@@ -145,3 +145,10 @@ gate, hardened container smoke) and no conflict. If two Dependabot PRs conflict 
 comment `@dependabot rebase` on the other and merge it once green. A red Dependabot PR is a normal
 failure to root-cause (P2 rules apply: never skip a test); a major bump that breaks the build gets a fix
 PR or a note to the owner explaining why it waits.
+
+Minor and patch updates merge themselves: `.github/workflows/dependabot-merge.yml` runs after `ci`
+passes on a Dependabot PR and applies the shared box policy (`.github/scripts/dependabot-merge.sh`,
+hosh-migration Decision #18: Dependabot's own verified commit, every update semver minor/patch), then
+re-runs `ci` on `main`. A PR labelled `needs-review` (major or unusual) is yours: read the changelog,
+merge it when CI is green and nothing in it touches this app. Merging does not deploy: production
+gets the updates with the next release (P4).
