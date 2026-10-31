@@ -73,6 +73,10 @@ class LegalFilterTests(unittest.TestCase):
         self.assertNotIn(author_key("Alcott, Louisa May"), self.allowed, "English author: BEQ text is a translation")
         self.assertNotIn(author_key("Doyle, Arthur Conan"), self.allowed, "uncredited French translation on Gutenberg")
         self.assertNotIn(author_key("Saint-Exupéry, Antoine de"), self.allowed, "mort pour la France: +30 years")
+        self.assertNotIn(author_key("Dante Alighieri"), self.allowed, "Italian author filed under PQ too")
+
+    def test_french_author_widely_translated_into_english_is_kept(self):
+        self.assertIn(author_key("Aimard, Gustave"), self.allowed, "more English than French books on Gutenberg")
 
     def test_file_name_must_match_the_heading(self):
         entries = parse_page(fixture("beq/classiques.htm"), CLASSIQUES)

@@ -176,33 +176,44 @@ def author_key(name: str) -> str:
     return fold(",".join(parts[:2]))
 
 
+_ROMANCE = ("it", "es", "pt", "ca", "la", "ro")  # other languages Library of Congress files under PQ
+
+
 def french_public_domain_authors(catalog_csv: str, this_year: int | None = None) -> set[str]:
-    """Author keys from Gutenberg's catalogue who (a) write in French: French is the language of more of
-    their Gutenberg books than any other language (ties refused) (Gutenberg's French Conan Doyle or Wilde are uncredited translations, which this
-    rules out), and (b) died at least 71 years ago (same rule as the Gutenberg source, incl. "morts pour
-    la France")."""
+    """Author keys from Gutenberg's catalogue who (a) write in French and (b) died at least 71 years ago
+    (same rule as the Gutenberg source, incl. "morts pour la France").
+
+    "Writes in French" = at least one of their books is in French, credits no translator AND is filed by
+    the Library of Congress under PQ (French literature), and they have at least as many French books as
+    Italian/Spanish/Portuguese/Latin ones (PQ also covers those). This rules out Gutenberg's uncredited
+    French translations of Conan Doyle (PR), Wilde (PR) or Sacher-Masoch (PT), and Dante (Italian)."""
     reader = csv.DictReader(io.StringIO(catalog_csv))
     if not reader.fieldnames or not {"Language", "Authors"}.issubset(reader.fieldnames):
         raise SourceError("parse", "lifespans: unexpected Gutenberg CSV header")
     year = this_year or datetime.date.today().year
     languages: dict[str, collections.Counter] = {}
+    french_writer: set[str] = set()
     eligible: set[str] = set()
     for row in reader:
         langs = {c.strip() for c in (row.get("Language") or "").split(";") if c.strip()}
-        for person in (a.strip() for a in (row.get("Authors") or "").split(";")):
-            if not person or "[" in person:
+        people = [a.strip() for a in (row.get("Authors") or "").split(";") if a.strip()]
+        credits_translator = any("[" in a for a in people)
+        french_lit = "PQ" in {c.strip()[:2] for c in (row.get("LoCC") or "").split(";")}
+        for person in people:
+            if "[" in person:
                 continue  # translators, editors, illustrators: not the author
             key = author_key(person)
             if not key:
                 continue
             languages.setdefault(key, collections.Counter()).update(langs)
+            if "fr" in langs and french_lit and not credits_translator:
+                french_writer.add(key)
             if public_domain_in_france(person, year):
                 eligible.add(key)
     keep = set()
-    for key in eligible:
-        counts = languages.get(key)
-        fr = counts.get("fr", 0) if counts else 0
-        if fr and all(fr > n for lang, n in counts.items() if lang != "fr"):
+    for key in eligible & french_writer:
+        counts = languages[key]
+        if counts.get("fr", 0) >= max((counts.get(lang, 0) for lang in _ROMANCE), default=0):
             keep.add(key)
     return keep
 

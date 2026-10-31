@@ -12,8 +12,8 @@ reads the collection pages once a week, honouring robots.txt `Crawl-delay: 10`. 
 - the author heading is known;
 - the file name contains the author's surname, which guards against misplaced headings;
 - Gutenberg's official catalogue shows that author wrote a French book with no translator and died at
-  least 71 years ago, French being the language of more of their Gutenberg books than any other (so uncredited
-  translations are refused), with 30 more years for authors "morts pour la France". Titles marked "Trad." are
+  least 71 years ago, with a French Gutenberg book filed under Library of Congress class PQ (French literature) and
+  no translator credited (so uncredited translations are refused), with 30 more years for authors "morts pour la France". Titles marked "Trad." are
   refused too.
 
 There is no Wikimedia lookup, because Wikipedia and Wikidata APIs are disallowed to generic robots.
