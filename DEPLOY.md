@@ -107,7 +107,7 @@ failed meanwhile stay in the outbox and go out with the new settings. Check: `/a
 | Edge | `/root/hosh-deploy/edge/traefik/dynamic/livres.yml` (router `livres@file`, resolver `le`, HSTS) |
 | Volume | docker volume `livres-data` → `/data` (in the monthly restic golden backup) |
 | Health | `GET /healthz` → `{"status":"ok", …}` |
-| Outbound | HTTPS to the hosts listed in enabled `sources/*.json` (`www.ebooksgratuits.com`, `www.gutenberg.org`, `gutenberg.org`, `ws-export.wmcloud.org`, `fr.wikisource.org`, `upload.wikimedia.org`; candidates add `gallica.bnf.fr`, `*.feedbooks.*`) + the owner's SMTP server. The code refuses any other host (`livres.http.host_allowed`). Remaining exfiltration route: a malicious spec could add a host, which needs a reviewed PR or the admin token. |
+| Outbound | HTTPS to the hosts listed in enabled `sources/*.json` (`www.ebooksgratuits.com`, `www.gutenberg.org`, `gutenberg.org`, `beq.ebooksgratuits.com`; candidates add `ws-export.wmcloud.org`, `fr.wikisource.org`, `upload.wikimedia.org`, `gallica.bnf.fr`, `*.feedbooks.*`) + the owner's SMTP server. The code refuses any other host (`livres.http.host_allowed`). Remaining exfiltration route: a malicious spec could add a host, which needs a reviewed PR or the admin token. |
 
 ## 5. Decisions / known limits
 - ADRs in `docs/adr/`. Standard library only; sources as data; never re-host; alerts by mail + GitHub issues.

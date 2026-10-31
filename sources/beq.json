@@ -1,0 +1,21 @@
+{
+  "id": "beq",
+  "name": "Bibliothèque électronique du Québec",
+  "kind": "beq_html",
+  "homepage": "https://beq.ebooksgratuits.com/",
+  "legal": "Textes du domaine public diffusés gratuitement par la Bibliothèque électronique du Québec, sans DRM. Seuls les livres écrits en français par un auteur mort depuis plus de 70 ans sont gardés (règle française).",
+  "modes": ["harvest"],
+  "config": {
+    "pages": [
+      "https://beq.ebooksgratuits.com/vents/index.htm",
+      "https://beq.ebooksgratuits.com/classiques/index.htm",
+      "https://beq.ebooksgratuits.com/pdf/index.htm"
+    ],
+    "lifespans_url": "https://www.gutenberg.org/cache/epub/feeds/pg_catalog.csv"
+  },
+  "allowed_hosts": ["beq.ebooksgratuits.com", "www.gutenberg.org", "gutenberg.org"],
+  "canary": {"query": "Aimard", "min_results": 3},
+  "priority": 30,
+  "status": "verified",
+  "notes": "No OPDS or catalogue file: the static collection pages are parsed (owner's yes, 2026-10-31, replacing Wikisource). robots.txt allows everything we read and asks Crawl-delay: 10, which PoliteHttpClient honours. BEQ follows Canadian law (life+50), so the adapter keeps only French-language authors that Gutenberg's catalogue shows dead for 71+ years, and only when the file name matches the author heading. Pages not yet parsed: libertinage, Philosophie, Propagande, contemporain (living authors, by permission: needs a separate legal look), author pages such as vents/zola.htm (layout not recorded yet)."
+}

@@ -2,7 +2,6 @@ name: beq-probe (temporary, removed before merge)
 on:
   push:
     branches: [claude/project-thread-czlc0k]
-    paths: [.github/workflows/beq-probe.yml]
 permissions:
   contents: read
 jobs:
@@ -13,24 +12,21 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
-      - env:
+      - name: Live check (AGENTS.md P1a step 5)
+        env:
           PYTHONPATH: src
         run: |
+          python -m livres.cli check --source beq --json || true
           python - <<'PY'
+          import collections, json
+          from livres.config import Settings
           from livres.http import PoliteHttpClient
-          c = PoliteHttpClient("LivresHoshBot/0.1 (+https://livres.hosh.it/robots-info)")
-          H = ("beq.ebooksgratuits.com",)
-          r = c.get("https://beq.ebooksgratuits.com/robots.txt", allowed_hosts=H) if True else None
-          print("=== robots", r.status, r.headers.get("content-type")); print(r.body.decode("latin-1")[:3000].replace(chr(10)," | "))
-          import base64
-          for p in ["vents/index.htm", "vents/zola.htm", "vents/Maupassant.htm"]:
-              r = c.get("https://beq.ebooksgratuits.com/" + p, allowed_hosts=H)
-              b = base64.b64encode(r.body).decode()
-              print("=== B64", p, len(r.body))
-              for i in range(0, len(b), 4000):
-                  print("B64LINE", b[i:i+4000])
-              print("=== END", p)
-          for host in ("www.ebooksgratuits.com",):
-              r = c.get(f"https://{host}/robots.txt", allowed_hosts=(host,))
-              print("=== ROBOTS", host, r.body[:2000].decode("latin-1").replace(chr(10), " | "))
+          from livres.sources import build_adapter, load_specs
+          from pathlib import Path
+          spec = next(s for s in load_specs(Path("sources")) if s.id == "beq")
+          books = list(build_adapter(spec, PoliteHttpClient("LivresHoshBot/0.1 (+https://livres.hosh.it/robots-info)")).harvest())
+          print("BOOKS", len(books))
+          print(collections.Counter(b.authors[0] for b in books).most_common(60))
+          for b in books[::25]:
+              print(" ", b.identifier, "|", b.title, "|", b.authors, "|", [a.href for a in b.sorted_acquisitions()][:1])
           PY

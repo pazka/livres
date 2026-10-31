@@ -14,6 +14,7 @@ from pathlib import Path
 from ..domain import Canary, Mode, SourceSpec
 from ..http import HttpClient, host_allowed
 from .base import SourceAdapter, SourceError
+from .beq import BeqHtmlAdapter
 from .gutenberg import GutenbergCsvAdapter
 from .opds1 import Opds1Adapter
 from .opds2 import Opds2Adapter
@@ -22,10 +23,11 @@ KINDS: dict[str, type[SourceAdapter]] = {
     "opds1": Opds1Adapter,
     "opds2": Opds2Adapter,
     "gutenberg_csv": GutenbergCsvAdapter,
+    "beq_html": BeqHtmlAdapter,
 }
 
 ID_RE = re.compile(r"^[a-z][a-z0-9-]{1,40}$")
-URL_KEYS = ("search_url", "root_url", "harvest_url", "catalog_url")
+URL_KEYS = ("search_url", "root_url", "harvest_url", "catalog_url", "lifespans_url")
 
 
 class SpecError(ValueError):
@@ -67,6 +69,16 @@ def validate(raw: dict) -> list[str]:
             errors.append(f"config.{key} must be https")
         if hosts and not host_allowed(url.replace("{", "").replace("}", ""), hosts):
             errors.append(f"config.{key} host is not in allowed_hosts")
+    pages = config.get("pages", [])
+    if not isinstance(pages, list):
+        errors.append("config.pages must be a list")
+        pages = []
+    for page in pages:
+        url = page if isinstance(page, str) else (page.get("url", "") if isinstance(page, dict) else "")
+        if urllib.parse.urlsplit(url).scheme != "https":
+            errors.append(f"config.pages: {url!r} must be an https URL")
+        elif hosts and not host_allowed(url, hosts):
+            errors.append(f"config.pages: host of {url} is not in allowed_hosts")
     kind = KINDS.get(raw["kind"])
     if kind:
         for key in kind.required_config:

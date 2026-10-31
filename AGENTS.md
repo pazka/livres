@@ -9,8 +9,8 @@ search working. Read `CLAUDE.md` first (box rules), then the protocol you need b
 1. **Legal sources only** (`docs/SOURCES.md` §Rules). Public domain, or a catalogue the rights holder offers
    for free. No shadow library, no "free download" aggregator of copyrighted books, no DRM, no account.
    `tests/test_registry.py` refuses known piracy hosts; that list is a floor, not the definition.
-2. **Polite by construction.** All fetching goes through `livres.http.PoliteHttpClient` (robots.txt,
-   host allowlist, 1 req/s/host, size cap). Never add a second HTTP path. If robots.txt forbids what we
+2. **Polite by construction.** All fetching goes through `livres.http.PoliteHttpClient` (robots.txt incl.
+   Crawl-delay, host allowlist, 1 req/s/host, size cap). Never add a second HTTP path. If robots.txt forbids what we
    need, the answer is "drop the source" or "ask the site", never a workaround.
 3. **Prefer official machine interfaces**: OPDS 1/2 > documented API/catalogue dump > HTML. HTML
    scraping needs the owner's explicit yes in the issue first.
@@ -62,7 +62,7 @@ durable fix is a PR (the repo is the source of truth, runtime overrides survive 
 
 ---
 
-## P1a — Add a source of an existing kind (OPDS 1, OPDS 2, Gutenberg-style CSV)
+## P1a — Add a source of an existing kind (OPDS 1, OPDS 2, Gutenberg-style CSV, BEQ HTML pages)
 
 1. **Legal check.** Write in the PR why it is legal (who publishes, which rights) and fill `legal` in one
    French sentence (shown to the owner). If unsure, stop and ask in the issue.
