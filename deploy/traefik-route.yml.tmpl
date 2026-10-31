@@ -1,0 +1,22 @@
+# Rendered by hosh-deploy on the first deploy (copied at `register`) into
+# /root/hosh-deploy/edge/traefik/dynamic/livres.yml. @@TOKENS@@ are filled on the box.
+# hosh.it box standard: edge Traefik (host network, file provider) → loopback port of the container.
+# REVERT = delete this file (Traefik hot-reloads the directory).
+http:
+  routers:
+    livres:
+      rule: "Host(`@@HOST@@`)"
+      service: livres
+      entryPoints: [@@ENTRYPOINT@@]
+      middlewares: [livres-hsts]
+      tls: @@TLS@@
+  middlewares:
+    livres-hsts:
+      headers:
+        stsSeconds: 31536000
+        stsIncludeSubdomains: true
+  services:
+    livres:
+      loadBalancer:
+        servers:
+          - url: "http://@@BIND@@"

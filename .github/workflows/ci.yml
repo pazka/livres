@@ -1,0 +1,85 @@
+name: ci
+
+# push to main / PR → tests → build → Trivy CRITICAL gate → hardened container smoke → (main only)
+# push ghcr.io/pazka/livres:ci and :<sha>. Box standard (hosh-migration 11-BOX-STANDARD.md).
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  IMAGE: ghcr.io/pazka/livres
+  # Trivy from its image pinned by digest (no third-party action holding a token).
+  TRIVY_IMAGE: mirror.gcr.io/aquasec/trivy:0.75.0@sha256:af6acf9a6b85dfe389a1941505c0ce9efef52a4719635e1a962f022a3d855daa
+
+jobs:
+  test:   # adapt to the stack (pytest / npm test / go test …); keep it blocking
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: |
+          echo "TODO (builder): run the test suite" && false
+
+  image:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build (local, for scanning)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: livres:scan
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Trivy gate (CRITICAL, fixable)
+        run: |
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock "$TRIVY_IMAGE" image \
+            --severity CRITICAL --ignore-unfixed --exit-code 1 --no-progress \
+            --db-repository mirror.gcr.io/aquasec/trivy-db,ghcr.io/aquasecurity/trivy-db \
+            livres:scan
+
+      - name: Container smoke (same hardening as the box)
+        run: |
+          docker run -d --name smoke --read-only --tmpfs /tmp --cap-drop ALL --user 10001:10001 \
+            --security-opt no-new-privileges:true -v smoke-data:/data -p 127.0.0.1:8000:8000 livres:scan
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:8000/healthz && break; sleep 2; done
+          curl -fsS http://127.0.0.1:8000/healthz | python3 -c 'import json,sys; assert json.load(sys.stdin)["status"]=="ok"'
+          docker logs smoke | tail -n 20
+          docker rm -f smoke
+
+      - name: Log in to GHCR
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push :ci and :<sha>
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:ci
+            ${{ env.IMAGE }}:${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+          cache-from: type=gha

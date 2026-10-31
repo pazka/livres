@@ -1,0 +1,9 @@
+*.env
+.env
+!.env.example
+docker-compose.yml
+data/
+*.sqlite3
+*.db
+__pycache__/
+node_modules/
