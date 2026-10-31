@@ -15,8 +15,8 @@ LIFESPANS = "https://www.gutenberg.org/cache/epub/feeds/pg_catalog.csv"
 HOSTS = ("beq.ebooksgratuits.com", "www.gutenberg.org")
 
 
-def adapter(routes, pages=(VENTS, CLASSIQUES)):
-    cfg = {"pages": list(pages), "lifespans_url": LIFESPANS}
+def adapter(routes, pages=(VENTS, CLASSIQUES), strict=True):
+    cfg = {"pages": list(pages), "lifespans_url": LIFESPANS, "france_public_domain": strict}
     return BeqHtmlAdapter(spec("beq", kind="beq_html", modes=(Mode.HARVEST,), config=cfg, hosts=HOSTS), FakeHttp(routes))
 
 
@@ -89,6 +89,36 @@ class LegalFilterTests(unittest.TestCase):
         with self.assertRaises(SourceError) as ctx:
             french_public_domain_authors("a,b\n1,2\n")
         self.assertEqual(ctx.exception.kind, "parse")
+
+
+class FullLibraryTests(unittest.TestCase):
+    """Default since 2026-10-31 (owner): every BEQ book, no legal filter."""
+
+    def setUp(self):
+        r = routes()
+        del r[LIFESPANS]  # the full library never downloads the lifespans file
+        self.books = {b.identifier: b for b in adapter(r, strict=False).harvest()}
+
+    def test_everything_with_a_title_and_a_download_is_kept(self):
+        authors = {a for b in self.books.values() for a in b.authors}
+        self.assertIn("Louisa May Alcott", authors)
+        self.assertIn("Gustave Aimard", authors)
+        self.assertTrue(all(b.title and b.usable for b in self.books.values()))
+
+    def test_anthology_keeps_its_authors_from_the_title(self):
+        medan = self.books["beq:vents-epub/Les_soirees_de_Medan"]
+        self.assertEqual(medan.title, "Les Soirées de Médan")
+        self.assertIn("Zola", medan.authors[0])
+
+    def test_misattributed_heading_is_dropped_not_guessed(self):
+        for b in self.books.values():
+            for a in b.authors:
+                if a == "Mathilde Alanic":
+                    self.assertIn("alanic", b.identifier.lower())
+
+    def test_more_books_than_the_filtered_library(self):
+        filtered = list(adapter(routes(), strict=True).harvest())
+        self.assertGreater(len(self.books), len(filtered))
 
 
 class HarvestTests(unittest.TestCase):

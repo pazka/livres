@@ -303,6 +303,19 @@ class MailTests(unittest.TestCase):
             self.assertEqual(w.transport.sent, [])
 
 
+    def test_mail_that_exhausted_its_attempts_is_retried_after_a_restart(self):
+        with TempDir() as tmp:
+            w = World(tmp, [], {}, mail_fail=smtplib.SMTPAuthenticationError(535, b"bad user"))
+            w.mailer.notify_owner("Sujet", "Corps")
+            for _ in range(10):
+                w.mailer.flush()
+            self.assertEqual(w.store.pending_mail(), [], "gave up after max attempts")
+            w.transport.fail = None  # owner fixed the SMTP user, then redeployed
+            self.assertEqual(w.store.retry_failed_mail(), 1)
+            self.assertEqual(w.mailer.flush(), 1)
+            self.assertEqual(w.store.mail_stats(), {"pending": 0, "sent": 1})
+
+
 class StoreTests(unittest.TestCase):
     def test_fts_handles_quotes_and_operators_safely(self):
         with TempDir() as tmp:

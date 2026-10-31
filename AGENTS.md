@@ -46,6 +46,7 @@ search working. Read `CLAUDE.md` first (box rules), then the protocol you need b
 | `POST /api/v1/admin/validate` `<spec JSON>` | validate a spec and run its canary, saves nothing |
 | `POST /api/v1/admin/sources` `<spec JSON>` | add an OPDS source at runtime (tested first; kind opds1/opds2 only) |
 | `DELETE /api/v1/admin/sources/<id>` | remove a runtime-added source |
+| `GET /api/v1/admin/sources/<id>/books?offset=N` | audit: every book indexed for a harvested source (500 per page) |
 | `GET /api/v1/admin/requests` | Mom's book requests |
 
 Every call is written to the audit log (`/admin/events`). Runtime changes are for **mitigation**; the

@@ -1,6 +1,6 @@
 # ADR-0005: BEQ through its HTML pages, with a French public-domain filter
 
-Date: 2026-10-31 · Status: accepted
+Date: 2026-10-31 · Status: accepted (filter switched OFF the same day by the owner: full library for now, `france_public_domain: false`, to be discussed)
 
 **Context.** Wikisource's export tool went behind bot protection (issue #9), which left two verified
 sources, one fewer than the minimum. The Bibliothèque électronique du Québec has a large French

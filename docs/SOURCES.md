@@ -15,13 +15,19 @@ A source is acceptable only if **all** of these hold:
 3. **Polite access**: an official machine interface (OPDS, documented API or catalogue dump) that robots.txt
    and the terms allow. We never re-host books: the app downloads from the source itself.
 
+> **Owner's decision, 2026-10-31: full library for now.** The French public-domain filters
+> (`france_public_domain` in `gutenberg` and `beq`) exist, are tested, and are **switched off** so that each
+> source gives its whole French catalogue; the owner will decide later whether to turn them on. Audit what is
+> indexed with `GET /api/v1/admin/sources/<id>/books`. Rule 1 below is therefore not enforced for those two
+> sources until then.
+
 ## Enabled (verified)
 
 | id | Source | How | Why it is legal |
 |---|---|---|---|
 | `ebooksgratuits` | Ebooks libres et gratuits | Official OPDS 1.2, live search (`opds/feed.php?mode=search`) | Public-domain texts proofread by volunteers, free on their own site, EPUB/MOBI/PDF without DRM |
-| `gutenberg` | Project Gutenberg | Weekly `pg_catalog.csv` (Gutenberg asks tools to use it instead of crawling), harvested into the local index; French books only, **filtered to French public domain** (all authors/translators died ≥ 71 years ago) | US public domain; the filter removes books still protected in France |
-| `beq` | Bibliothèque électronique du Québec | Static collection pages (`vents`, `classiques`, `pdf`) parsed weekly: no OPDS or catalogue file exists, the owner allowed HTML parsing on 2026-10-31. robots.txt `Crawl-delay: 10` honoured | Public-domain texts, free EPUB/MOBI without DRM. BEQ follows Canadian law (life + 50), so the adapter keeps only **French-language authors dead for 71+ years** according to Gutenberg's catalogue (the author needs a French Gutenberg book with no translator, filed under Library of Congress class PQ, French literature; that excludes uncredited translations such as Gutenberg's French Conan Doyle), and only when the file name matches the author heading; anthologies, translations and unknown authors are left out |
+| `gutenberg` | Project Gutenberg | Weekly `pg_catalog.csv` (Gutenberg asks tools to use it instead of crawling), harvested into the local index; French books only, all French books (French public-domain filter available, currently off: see above) | US public domain; the filter removes books still protected in France |
+| `beq` | Bibliothèque électronique du Québec | Static collection pages (`vents`, `classiques`, `pdf`) parsed weekly, whole catalogue (filter off, see above): no OPDS or catalogue file exists, the owner allowed HTML parsing on 2026-10-31. robots.txt `Crawl-delay: 10` honoured | Public-domain texts, free EPUB/MOBI without DRM. BEQ follows Canadian law (life + 50), so the adapter keeps only **French-language authors dead for 71+ years** according to Gutenberg's catalogue (the author needs a French Gutenberg book with no translator, filed under Library of Congress class PQ, French literature; that excludes uncredited translations such as Gutenberg's French Conan Doyle), and only when the file name matches the author heading; anthologies, translations and unknown authors are left out |
 
 ## Candidates (shipped disabled, enable after a passing live check — AGENTS.md P1a)
 

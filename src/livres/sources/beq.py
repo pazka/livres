@@ -5,7 +5,7 @@ AGENTS.md ground rule 3, decision of 2026-10-31). The pages are hand-made FrontP
 rarely: an author heading in bold ("Achard, Amédée :"), then one paragraph per book holding the
 download links (EPUB, MOBI, PDF) followed by the title as plain text.
 
-**French public domain.** BEQ follows Canadian law (life + 50 years for authors who died before 1972),
+**French public domain (optional, `france_public_domain`, OFF by default).** BEQ follows Canadian law (life + 50 years for authors who died before 1972),
 so some of its books are still protected in France (life + 70). Its pages carry no dates. A book is kept
 only when its author is identified AND known (from Project Gutenberg's official catalogue, which lists
 lifespans) to have died at least 71 years ago AND to write in French (an original French text has no
@@ -15,7 +15,9 @@ is left out. Conservative on purpose: a missing book is better than an illegal o
 config keys:
   pages          [url | {"url": ..., "author": "Nom, Prénom"}]  collection or author pages to parse;
                  "author" applies to entries of a page that has no bold author heading
-  lifespans_url  Project Gutenberg pg_catalog.csv (author lifespans)
+  france_public_domain  true -> apply the French public-domain filter below (default false: the owner
+                 asked for the full library on 2026-10-31; the filter stays available)
+  lifespans_url  Project Gutenberg pg_catalog.csv (author lifespans), needed by the filter
   max_pages      safety limit on `pages` (default 40)
 """
 
@@ -244,15 +246,19 @@ def file_matches_author(entry: Entry, author: str) -> bool:
 
 
 class BeqHtmlAdapter(SourceAdapter):
-    required_config = ("pages", "lifespans_url")
+    required_config = ("pages",)
 
     def harvest(self) -> Iterator[Book]:
         cfg = self.spec.config
         pages = list(cfg["pages"])[: int(cfg.get("max_pages", 40))]
-        lifespans = self.fetch(cfg["lifespans_url"], max_bytes=120_000_000, accept="text/csv")
-        allowed = french_public_domain_authors(lifespans.body.decode("utf-8", errors="replace"))
-        if not allowed:
-            raise SourceError("parse", "lifespans: no author found in the Gutenberg catalogue")
+        allowed: set[str] | None = None  # None = full library (filter off, owner's choice 2026-10-31)
+        if cfg.get("france_public_domain"):
+            if not cfg.get("lifespans_url"):
+                raise SourceError("config", "france_public_domain needs config.lifespans_url")
+            lifespans = self.fetch(cfg["lifespans_url"], max_bytes=120_000_000, accept="text/csv")
+            allowed = french_public_domain_authors(lifespans.body.decode("utf-8", errors="replace"))
+            if not allowed:
+                raise SourceError("parse", "lifespans: no author found in the Gutenberg catalogue")
         seen: set[str] = set()
         found = 0
         for page in pages:
@@ -267,26 +273,37 @@ class BeqHtmlAdapter(SourceAdapter):
         if found == 0:
             raise SourceError("parse", "no book link found on any BEQ page: the layout changed")
 
-    def to_books(self, entries: list[Entry], allowed: set[str]) -> Iterator[Book]:
+    def to_books(self, entries: list[Entry], allowed: set[str] | None) -> Iterator[Book]:
+        """allowed=None: every book with a title and a download (full library). Otherwise the French
+        public-domain filter described in the module docstring."""
+        strict = allowed is not None
         for e in entries:
-            if not e.author or author_key(e.author) not in allowed:
-                continue
-            if not file_matches_author(e, e.author):
-                continue  # heading and file disagree (tables, misplaced headings): never guess
-            if not ({"application/epub+zip", "application/x-mobipocket-ebook"} & e.links.keys()):
-                continue  # Mom's Kindle needs EPUB or MOBI; PDF-only entries are skipped
+            author = e.author if e.author and file_matches_author(e, e.author) else None
             title = e.title
             low = title.lower()
-            if not title or len(title) > 300 or ", par " in low or "trad." in low or "traduction" in low:
+            if not title or len(title) > 300:
                 continue
-            main = e.links.get("application/epub+zip") or e.links["application/x-mobipocket-ebook"]
+            if strict:
+                if not author or author_key(author) not in allowed:
+                    continue
+                if not ({"application/epub+zip", "application/x-mobipocket-ebook"} & e.links.keys()):
+                    continue  # Mom's Kindle needs EPUB or MOBI; PDF-only entries are skipped
+                if ", par " in low or "trad." in low or "traduction" in low:
+                    continue
+            authors: tuple[str, ...] = (display_author(author),) if author else ()
+            if not authors and ", par " in low:
+                cut = low.index(", par ")
+                authors = (title[cut + 6:].strip(" .") ,)
+                title = title[:cut].strip()
+            main = (e.links.get("application/epub+zip") or e.links.get("application/x-mobipocket-ebook")
+                    or e.links["application/pdf"])
             path = urllib.parse.urlsplit(main).path.strip("/")
             stable = path.rsplit(".", 1)[0]
             yield Book(
                 identifier=f"{self.spec.id}:{stable}",
                 source_id=self.spec.id,
                 title=title,
-                authors=(display_author(e.author),),
+                authors=authors,
                 language="fr",
                 page_url=None,
                 acquisitions=tuple(Acquisition(href, media) for media, href in e.links.items()),

@@ -136,6 +136,13 @@ class Store:
                 break
         return [_book(r) for r in rows]
 
+    def list_books(self, source_id: str, limit: int = 500, offset: int = 0) -> list[Book]:
+        """Everything indexed for a source, for audits (agent API)."""
+        rows = self.conn().execute(
+            "SELECT * FROM books WHERE source_id=? ORDER BY title, identifier LIMIT ? OFFSET ?", (source_id, limit, offset)
+        ).fetchall()
+        return [_book(r) for r in rows]
+
     def count_books(self, source_id: str) -> int:
         return self.conn().execute("SELECT count(*) FROM books WHERE source_id=?", (source_id,)).fetchone()[0]
 
@@ -245,6 +252,11 @@ class Store:
         return self.conn().execute(
             "SELECT * FROM outbox WHERE sent_at IS NULL AND attempts < ? ORDER BY id LIMIT 20", (max_attempts,)
         ).fetchall()
+
+    def retry_failed_mail(self) -> int:
+        """Give unsent messages a fresh set of attempts (called at start-up, e.g. after the owner fixed SMTP)."""
+        with self.tx() as db:
+            return db.execute("UPDATE outbox SET attempts=0 WHERE sent_at IS NULL AND attempts > 0").rowcount
 
     def mark_mail(self, mail_id, error: str | None):
         with self.tx() as db:

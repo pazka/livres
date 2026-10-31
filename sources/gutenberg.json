@@ -3,22 +3,38 @@
   "name": "Project Gutenberg",
   "kind": "gutenberg_csv",
   "homepage": "https://www.gutenberg.org/",
-  "legal": "Livres du domaine public aux États-Unis, diffusés gratuitement par Project Gutenberg. Seuls les livres dont tous les auteurs et traducteurs sont morts depuis plus de 70 ans sont gardés (règle française du domaine public).",
-  "modes": ["harvest"],
+  "legal": "Livres du domaine public aux États-Unis, diffusés gratuitement par Project Gutenberg. Tous les livres en français pour l'instant ; le filtre « domaine public en France » existe et peut être activé (france_public_domain).",
+  "modes": [
+    "harvest"
+  ],
   "config": {
     "catalog_url": "https://www.gutenberg.org/cache/epub/feeds/pg_catalog.csv",
-    "languages": ["fr"],
-    "france_public_domain": true,
+    "languages": [
+      "fr"
+    ],
+    "france_public_domain": false,
     "acquisitions": [
-      {"href": "https://www.gutenberg.org/ebooks/{id}.epub3.images", "type": "application/epub+zip"},
-      {"href": "https://www.gutenberg.org/ebooks/{id}.kindle.images", "type": "application/x-mobipocket-ebook"}
+      {
+        "href": "https://www.gutenberg.org/ebooks/{id}.epub3.images",
+        "type": "application/epub+zip"
+      },
+      {
+        "href": "https://www.gutenberg.org/ebooks/{id}.kindle.images",
+        "type": "application/x-mobipocket-ebook"
+      }
     ],
     "cover_url": "https://www.gutenberg.org/cache/epub/{id}/pg{id}.cover.medium.jpg",
     "page_url": "https://www.gutenberg.org/ebooks/{id}"
   },
-  "allowed_hosts": ["www.gutenberg.org", "gutenberg.org"],
-  "canary": {"query": "Hugo", "min_results": 5},
+  "allowed_hosts": [
+    "www.gutenberg.org",
+    "gutenberg.org"
+  ],
+  "canary": {
+    "query": "Hugo",
+    "min_results": 5
+  },
   "priority": 20,
   "status": "verified",
-  "notes": "Gutenberg asks tools to use the offline catalogues instead of crawling (https://www.gutenberg.org/ebooks/offline_catalogs.html). Its OPDS search is disallowed by robots.txt, so it is not used. The CSV is refreshed weekly upstream; we harvest weekly. Its XML OPDS is announced to sunset in 2027: if an OPDS 2 feed becomes public, switch to kind opds2."
+  "notes": "Gutenberg asks tools to use the offline catalogues instead of crawling (https://www.gutenberg.org/ebooks/offline_catalogs.html). Its OPDS search is disallowed by robots.txt, so it is not used. The CSV is refreshed weekly upstream; we harvest weekly. Its XML OPDS is announced to sunset in 2027: if an OPDS 2 feed becomes public, switch to kind opds2. Owner's decision 2026-10-31: full French catalogue for now, france_public_domain off (to be discussed)."
 }
