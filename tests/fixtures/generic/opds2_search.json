@@ -1,0 +1,30 @@
+{
+  "metadata": {"title": "Search"},
+  "links": [{"rel": "next", "href": "/search?query=verne&page=2", "type": "application/opds+json"}],
+  "publications": [
+    {
+      "metadata": {"identifier": "urn:isbn:9780000000001", "title": "Vingt mille lieues sous les mers", "author": [{"name": "Jules Verne"}], "language": "fr"},
+      "links": [
+        {"rel": "http://opds-spec.org/acquisition/open-access", "href": "/b/1.epub", "type": "application/epub+zip", "properties": {"size": 1234567}},
+        {"rel": "alternate", "href": "/b/1", "type": "text/html"}
+      ],
+      "images": [{"href": "/c/1.jpg", "type": "image/jpeg"}]
+    },
+    {
+      "metadata": {"identifier": "x2", "title": {"fr": "Voyage au centre de la Terre", "en": "Journey"}, "author": "Jules Verne", "language": ["fr"]},
+      "links": [{"rel": ["http://opds-spec.org/acquisition/open-access"], "href": "/b/2.epub", "type": "application/epub+zip"}]
+    },
+    {
+      "metadata": {"identifier": "x3", "title": "Paid", "language": "fr"},
+      "links": [{"rel": "http://opds-spec.org/acquisition", "href": "/b/3", "type": "application/epub+zip", "properties": {"price": {"value": 5, "currency": "EUR"}}}]
+    },
+    {
+      "metadata": {"identifier": "x4", "title": "LCP", "language": "fr"},
+      "links": [{"rel": "http://opds-spec.org/acquisition", "href": "/b/4", "type": "application/vnd.readium.lcp.license.v1.0+json"}]
+    },
+    {
+      "metadata": {"identifier": "x5", "title": "English one", "language": "en"},
+      "links": [{"rel": "http://opds-spec.org/acquisition/open-access", "href": "/b/5.epub", "type": "application/epub+zip"}]
+    }
+  ]
+}

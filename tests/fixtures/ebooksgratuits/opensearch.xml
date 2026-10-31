@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OpenSearchDescription xmlns="http://a9.com/-/spec/opensearch/1.1/">
+  <ShortName>Ebooks libres et gratuits</ShortName>
+  <Url type="text/html" template="https://www.ebooksgratuits.com/ebooks.php?titre={searchTerms}"/>
+  <Url type="application/atom+xml" template="https://www.ebooksgratuits.com/opds/feed.php?mode=search&amp;query={searchTerms}"/>
+  <Url type="application/x-suggestions+json" rel="suggestions" template="https://www.ebooksgratuits.com/opds/search.php?mode=json&amp;query={searchTerms}"/>
+</OpenSearchDescription>

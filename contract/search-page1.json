@@ -1,0 +1,135 @@
+{
+  "links": [
+    {
+      "href": "https://livres.hosh.it/opds/v2/search?query=maupassant",
+      "rel": "self",
+      "type": "application/opds+json"
+    },
+    {
+      "href": "https://livres.hosh.it/opds/v2/catalog.json",
+      "rel": "start",
+      "type": "application/opds+json"
+    },
+    {
+      "href": "https://livres.hosh.it/opds/v2/search{?query}",
+      "rel": "search",
+      "templated": true,
+      "type": "application/opds+json"
+    },
+    {
+      "href": "https://livres.hosh.it/api/v1/download-hosts",
+      "rel": "https://livres.hosh.it/rel/download-hosts",
+      "type": "application/json"
+    },
+    {
+      "href": "https://livres.hosh.it/opds/v2/search?query=maupassant&page=2",
+      "rel": "next",
+      "type": "application/opds+json"
+    }
+  ],
+  "metadata": {
+    "currentPage": 1,
+    "itemsPerPage": 2,
+    "title": "Résultats pour « maupassant »"
+  },
+  "publications": [
+    {
+      "images": [
+        {
+          "href": "https://www.ebooksgratuits.com/covers/101.jpg",
+          "type": "image/jpeg"
+        }
+      ],
+      "links": [
+        {
+          "href": "https://www.ebooksgratuits.com/newsendbook.php?id=101&format=epub",
+          "properties": {
+            "size": 412345
+          },
+          "rel": "http://opds-spec.org/acquisition/open-access",
+          "type": "application/epub+zip"
+        },
+        {
+          "href": "https://www.ebooksgratuits.com/newsendbook.php?id=101&format=mp",
+          "rel": "http://opds-spec.org/acquisition/open-access",
+          "type": "application/x-mobipocket-ebook"
+        },
+        {
+          "href": "https://www.ebooksgratuits.com/newsendbook.php?id=101&format=pdf",
+          "rel": "http://opds-spec.org/acquisition/open-access",
+          "type": "application/pdf"
+        },
+        {
+          "href": "https://www.ebooksgratuits.com/details.php?book=101",
+          "rel": "alternate",
+          "type": "text/html"
+        }
+      ],
+      "metadata": {
+        "@type": "http://schema.org/Book",
+        "author": [
+          {
+            "name": "Guy de Maupassant"
+          }
+        ],
+        "belongsTo": {
+          "collection": [
+            {
+              "identifier": "ebooksgratuits",
+              "name": "Ebooks libres et gratuits"
+            }
+          ]
+        },
+        "description": "Georges Duroy, ancien sous-officier, fait carrière dans le journalisme parisien.",
+        "identifier": "ebooksgratuits:https://www.ebooksgratuits.com/details.php?book=101",
+        "language": "fr",
+        "title": "Bel-Ami"
+      }
+    },
+    {
+      "images": [
+        {
+          "href": "https://www.gutenberg.org/cache/epub/135/pg135.cover.medium.jpg",
+          "type": "image/jpeg"
+        }
+      ],
+      "links": [
+        {
+          "href": "https://www.gutenberg.org/ebooks/135.epub3.images",
+          "rel": "http://opds-spec.org/acquisition/open-access",
+          "type": "application/epub+zip"
+        },
+        {
+          "href": "https://www.gutenberg.org/ebooks/135.kindle.images",
+          "rel": "http://opds-spec.org/acquisition/open-access",
+          "type": "application/x-mobipocket-ebook"
+        },
+        {
+          "href": "https://www.gutenberg.org/ebooks/135",
+          "rel": "alternate",
+          "type": "text/html"
+        }
+      ],
+      "metadata": {
+        "@type": "http://schema.org/Book",
+        "author": [
+          {
+            "name": "Victor Hugo"
+          }
+        ],
+        "belongsTo": {
+          "collection": [
+            {
+              "identifier": "gutenberg",
+              "name": "Project Gutenberg"
+            }
+          ]
+        },
+        "identifier": "gutenberg:135",
+        "language": "fr",
+        "published": "1994-04-01",
+        "title": "Les Misérables"
+      }
+    }
+  ]
+}

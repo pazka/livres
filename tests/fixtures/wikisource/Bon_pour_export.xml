@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:dc="http://purl.org/dc/terms/">
+  <id>https://ws-export.wmcloud.org/opds/fr/Bon_pour_export.xml</id>
+  <title>Wikisource fr: Bon pour export</title>
+  <updated>2026-10-30T00:00:00Z</updated>
+  <link rel="self" type="application/atom+xml;profile=opds-catalog;kind=acquisition" href="https://ws-export.wmcloud.org/opds/fr/Bon_pour_export.xml"/>
+  <entry>
+    <id>https://fr.wikisource.org/wiki/Les_Contemplations</id>
+    <title>Les Contemplations</title>
+    <author><name>Victor Hugo</name></author>
+    <dc:language>fr</dc:language>
+    <dc:issued>1856</dc:issued>
+    <updated>2026-10-30T00:00:00Z</updated>
+    <link rel="alternate" type="text/html" href="https://fr.wikisource.org/wiki/Les_Contemplations"/>
+    <link rel="http://opds-spec.org/acquisition" type="application/epub+zip" href="https://ws-export.wmcloud.org/?format=epub&amp;lang=fr&amp;page=Les_Contemplations"/>
+    <link rel="http://opds-spec.org/acquisition" type="application/x-mobipocket-ebook" href="https://ws-export.wmcloud.org/?format=mobi&amp;lang=fr&amp;page=Les_Contemplations"/>
+    <link rel="http://opds-spec.org/acquisition" type="application/pdf" href="https://ws-export.wmcloud.org/?format=pdf-a4&amp;lang=fr&amp;page=Les_Contemplations"/>
+  </entry>
+  <entry>
+    <id>https://fr.wikisource.org/wiki/Les_Rayons_et_les_Ombres</id>
+    <title>Les Rayons et les Ombres</title>
+    <author><name>Victor Hugo</name></author>
+    <dc:language>fr</dc:language>
+    <updated>2026-10-30T00:00:00Z</updated>
+    <link rel="http://opds-spec.org/acquisition" type="application/epub+zip" href="https://ws-export.wmcloud.org/?format=epub&amp;lang=fr&amp;page=Les_Rayons_et_les_Ombres"/>
+  </entry>
+  <entry>
+    <id>https://fr.wikisource.org/wiki/Odes_et_Ballades</id>
+    <title>Odes et Ballades</title>
+    <author><name>Victor Hugo</name></author>
+    <dc:language>fr</dc:language>
+    <updated>2026-10-30T00:00:00Z</updated>
+    <link rel="http://opds-spec.org/acquisition" type="application/epub+zip" href="https://ws-export.wmcloud.org/?format=epub&amp;lang=fr&amp;page=Odes_et_Ballades"/>
+  </entry>
+  <entry>
+    <id>https://fr.wikisource.org/wiki/Le_Tour_du_monde_en_quatre-vingts_jours</id>
+    <title>Le Tour du monde en quatre-vingts jours</title>
+    <author><name>Jules Verne</name></author>
+    <dc:language>fr</dc:language>
+    <updated>2026-10-30T00:00:00Z</updated>
+    <link rel="http://opds-spec.org/acquisition" type="application/epub+zip" href="https://ws-export.wmcloud.org/?format=epub&amp;lang=fr&amp;page=Le_Tour_du_monde_en_quatre-vingts_jours"/>
+  </entry>
+</feed>
