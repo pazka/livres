@@ -21,12 +21,13 @@ jobs:
           c = PoliteHttpClient("LivresHoshBot/0.1 (+https://livres.hosh.it/robots-info)")
           H = ("beq.ebooksgratuits.com",)
           r = c.get("https://beq.ebooksgratuits.com/robots.txt", allowed_hosts=H) if True else None
-          print("=== robots", r.status, r.headers.get("content-type")); print(r.body.decode("latin-1")[:3000])
-          for p in ["", "vents/index.htm", "classiques/index.htm", "balzac/index.htm"]:
-              try:
-                  r = c.get("https://beq.ebooksgratuits.com/" + p, allowed_hosts=H)
-                  print("=== PAGE", p, r.status, r.headers.get("content-type"), len(r.body))
-                  print(r.body[:9000].decode("latin-1"))
-              except Exception as e:
-                  print("=== FAIL", p, e)
+          print("=== robots", r.status, r.headers.get("content-type")); print(r.body.decode("latin-1")[:3000].replace(chr(10)," | "))
+          import base64
+          for p in ["index.htm", "vents/index.htm", "classiques/index.htm", "pdf/index.htm"]:
+              r = c.get("https://beq.ebooksgratuits.com/" + p, allowed_hosts=H)
+              b = base64.b64encode(r.body[:120000]).decode()
+              print("=== B64", p, len(r.body))
+              for i in range(0, len(b), 4000):
+                  print("B64LINE", b[i:i+4000])
+              print("=== END", p)
           PY
