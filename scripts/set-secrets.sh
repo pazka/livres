@@ -1,13 +1,17 @@
 #!/bin/bash
 # set-secrets.sh — OWNER ONLY, in your own SSH terminal (needs a TTY). Writes the secrets of livres.env.
 #
-#   sudo bash /srv/livres/scripts/set-secrets.sh /srv/livres/livres.env [image]
+#   sudo bash /srv/livres/scripts/set-secrets.sh /srv/livres/livres.env [image]      everything (first install)
+#   sudo bash /srv/livres/scripts/set-secrets.sh --mail /srv/livres/livres.env         only the mail settings
+#                                       (admin password and agent token are left untouched)
 #
 # Nothing secret is printed, logged or passed on a command line, except the agent API token, shown
 # ONCE so you can store it as the GitHub secret LIVRES_ADMIN_TOKEN (and in your password manager).
 # Hashing runs inside the released image (no network, read-only, non-root): no repo code on the host.
 set -euo pipefail
-ENV_FILE="${1:?usage: set-secrets.sh /srv/livres/livres.env [image]}"
+MAIL_ONLY=0
+if [ "${1:-}" = "--mail" ]; then MAIL_ONLY=1; shift; fi
+ENV_FILE="${1:?usage: set-secrets.sh [--mail] /srv/livres/livres.env [image]}"
 [ -f "$ENV_FILE" ] || { echo "$ENV_FILE not found (create it from .env.example first)" >&2; exit 1; }
 [ -t 0 ] || { echo "run this in an interactive terminal" >&2; exit 1; }
 IMAGE="${2:-$(sed -n "s/^APP_IMAGE='\{0,1\}\([^']*\)'\{0,1\}$/\1/p" "$ENV_FILE")}"
@@ -25,6 +29,7 @@ set_var() {  # set_var NAME VALUE  (single-quoted: compose takes it literally, '
 ask() { local prompt="$1" var; read -r -p "$prompt" var; printf '%s' "$var"; }
 ask_secret() { local prompt="$1" var; read -r -s -p "$prompt" var; echo >&2; printf '%s' "$var"; }
 
+if [ "$MAIL_ONLY" = 0 ]; then
 echo "== Admin page password (12+ characters)"
 while :; do
   p1="$(ask_secret 'Password: ')"; p2="$(ask_secret 'Again: ')"
@@ -40,6 +45,7 @@ tok_json="$("${RUN[@]}" python -m livres.cli new-token)"
 token="$(printf '%s' "$tok_json" | sed -n 's/.*"token": "\([^"]*\)".*/\1/p')"
 sha="$(printf '%s' "$tok_json" | sed -n 's/.*"sha256": "\([0-9a-f]*\)".*/\1/p')"
 set_var LIVRES_ADMIN_TOKEN_SHA256 "$sha"
+fi
 
 echo "== Mail (book requests and source alerts are sent to you)"
 set_var LIVRES_OWNER_EMAIL "$(ask 'Your e-mail (recipient): ')"
@@ -50,6 +56,14 @@ tls="$(ask 'TLS mode starttls|ssl|none [starttls]: ')"; set_var LIVRES_SMTP_TLS 
 set_var LIVRES_SMTP_USER "$(ask 'SMTP user: ')"
 set_var LIVRES_SMTP_PASSWORD "$(ask_secret 'SMTP password (e.g. a Gmail app password): ')"
 
+if [ "$MAIL_ONLY" = 1 ]; then
+  echo
+  echo "Mail settings saved. Apply them by redeploying the running version (no new release needed):"
+  echo "  sudo hosh-deploy status livres            # shows the version in use"
+  echo "  sudo hosh-deploy deploy livres vX.Y.Z     # same version: restarts with the new settings"
+  echo "Messages that could not be sent are kept in the outbox and retried with the new settings."
+  exit 0
+fi
 echo
 echo "Done. Store this agent token now; it is not kept anywhere in clear:"
 echo "  GitHub: gh secret set LIVRES_ADMIN_TOKEN -R pazka/livres   (paste it)"

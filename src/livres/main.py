@@ -63,6 +63,7 @@ def build(settings: Settings, http: HttpClient | None = None, mail_transport=Non
     http = http or PoliteHttpClient(settings.user_agent, settings.http_timeout, settings.min_host_interval)
     catalog = Catalog(load_specs(settings.sources_dir), store, http)
     mailer = Mailer(settings, store, mail_transport)
+    store.retry_failed_mail()  # a restart (e.g. after fixing SMTP settings) retries what could not be sent
     search = SearchService(catalog, settings.search_timeout, settings.cache_ttl)
     monitor = HealthMonitor(catalog, mailer, settings.base_url, settings.fail_threshold, settings.harvest_interval)
     monitor.catalog_changed = search.clear_cache

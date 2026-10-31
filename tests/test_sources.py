@@ -150,6 +150,12 @@ class GutenbergTests(unittest.TestCase):
         self.assertFalse(public_domain_in_france("Grimm, Jacob, 1785-1863; Doe, Jane, 1960- [Translator]", 2026))
         self.assertFalse(public_domain_in_france("Someone, Unknown Dates", 2026))
         self.assertTrue(public_domain_in_france("Anonymous", 2026))
+
+    def test_morts_pour_la_france_get_thirty_more_years(self):
+        self.assertFalse(public_domain_in_france("Saint-Exupéry, Antoine de, 1900-1944", 2026), "PD in France in 2045")
+        self.assertTrue(public_domain_in_france("Saint-Exupéry, Antoine de, 1900-1944", 2045))
+        self.assertTrue(public_domain_in_france("Pergaud, Louis, 1882-1915", 2026), "1915 + 70 + 30 is past")
+        self.assertTrue(public_domain_in_france("Giraudoux, Jean, 1882-1944", 2026), "not mort pour la France")
         self.assertTrue(public_domain_in_france("Homer, 751? BCE-651? BCE", 2026))
 
     def test_unexpected_header_is_a_parse_error(self):

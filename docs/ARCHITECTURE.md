@@ -6,7 +6,7 @@
    POST /api/v1/requests                                       ├─ web/      router, auth, OPDS/JSON/HTML
  Owner browser ── /admin (password)                            ├─ services  search · health · requests · mail
  Agents / CI ──── /api/v1/admin (token)                        ├─ catalog   repo specs + admin specs + overrides
-                                                               ├─ sources/  opds1 · opds2 · gutenberg_csv adapters
+                                                               ├─ sources/  opds1 · opds2 · gutenberg_csv · beq_html adapters
  GitHub Actions ─ sources-canary (daily) → issues              ├─ http      PoliteHttpClient (robots, allowlist, throttle)
                                                                └─ store     SQLite WAL in /data (index FTS5, health, requests, outbox, audit)
                                                                     │
@@ -18,7 +18,7 @@
 | Layer | Module | Knows about | Never |
 |---|---|---|---|
 | domain | `domain.py` | dataclasses, format ranking, text folding | I/O |
-| outbound | `http.py` | urllib, robots.txt | business rules |
+| outbound | `http.py` | urllib, robots.txt (incl. Crawl-delay) | business rules |
 | adapters | `sources/*.py` | one source kind's format | the web layer, the store |
 | registry | `sources/__init__.py` | spec validation, kind → adapter | network |
 | catalog | `catalog.py` | which sources are in effect | parsing |

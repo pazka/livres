@@ -55,6 +55,18 @@ and test the GitHub path once: Actions → deploy → `status`.
 `sudo rm /root/hosh-deploy/edge/traefik/dynamic/livres.yml /etc/hosh-deploy/apps/livres.conf` +
 `sudo .../setup-hosh-deploy.sh unkey livres`.
 
+## 1c. Change the mail settings later (owner)
+
+Sender account wrong, password changed, new recipient: in your own SSH terminal,
+```sh
+cd /srv/livres && sudo git fetch -q --depth 1 origin tag vX.Y.Z && sudo git checkout -q vX.Y.Z  # script with --mail (v0.2.0+)
+sudo bash /srv/livres/scripts/set-secrets.sh --mail /srv/livres/livres.env
+sudo hosh-deploy status livres && sudo hosh-deploy deploy livres <version in use>   # restart with the new settings
+```
+Only the mail questions are asked; the admin password and the agent token stay as they are. Messages that
+failed meanwhile stay in the outbox and go out with the new settings. Check: `/api/v1/status` shows
+`"mail": "configured"`, `/admin/events` shows "en attente : 0", and a test book request reaches you.
+
 ## 2. Variables (`livres.env`, mode 600)
 | Variable | Default | Set by | Meaning |
 |---|---|---|---|
@@ -95,7 +107,7 @@ and test the GitHub path once: Actions → deploy → `status`.
 | Edge | `/root/hosh-deploy/edge/traefik/dynamic/livres.yml` (router `livres@file`, resolver `le`, HSTS) |
 | Volume | docker volume `livres-data` → `/data` (in the monthly restic golden backup) |
 | Health | `GET /healthz` → `{"status":"ok", …}` |
-| Outbound | HTTPS to the hosts listed in enabled `sources/*.json` (`www.ebooksgratuits.com`, `www.gutenberg.org`, `gutenberg.org`, `ws-export.wmcloud.org`, `fr.wikisource.org`, `upload.wikimedia.org`; candidates add `gallica.bnf.fr`, `*.feedbooks.*`) + the owner's SMTP server. The code refuses any other host (`livres.http.host_allowed`). Remaining exfiltration route: a malicious spec could add a host, which needs a reviewed PR or the admin token. |
+| Outbound | HTTPS to the hosts listed in enabled `sources/*.json` (`www.ebooksgratuits.com`, `www.gutenberg.org`, `gutenberg.org`, `beq.ebooksgratuits.com`; candidates add `ws-export.wmcloud.org`, `fr.wikisource.org`, `upload.wikimedia.org`, `gallica.bnf.fr`, `*.feedbooks.*`) + the owner's SMTP server. The code refuses any other host (`livres.http.host_allowed`). Remaining exfiltration route: a malicious spec could add a host, which needs a reviewed PR or the admin token. |
 
 ## 5. Decisions / known limits
 - ADRs in `docs/adr/`. Standard library only; sources as data; never re-host; alerts by mail + GitHub issues.

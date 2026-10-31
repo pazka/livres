@@ -129,6 +129,19 @@ class HttpTests(unittest.TestCase):
         times = [t for t, p, _, _ in self.site.hits if p in ("/a", "/b")]
         self.assertGreaterEqual(times[1] - times[0], 0.2)
 
+    def test_crawl_delay_from_robots_is_honoured(self):
+        self.site.robots = b"User-agent: *\nCrawl-delay: 1\nDisallow: /private\n"
+        client = PoliteHttpClient("LivresHoshBot/test", timeout=5, min_interval=0)
+        client.get(self.site.base + "/a", allowed_hosts=HOSTS)
+        client.get(self.site.base + "/b", allowed_hosts=HOSTS)
+        times = [t for t, p, _, _ in self.site.hits if p in ("/a", "/b")]
+        self.assertGreaterEqual(times[1] - times[0], 0.9)
+        self.assertEqual(client.crawl_delay(self.site.base + "/a"), 1.0)
+
+    def test_no_crawl_delay_means_min_interval(self):
+        self.client.get(self.site.base + "/a", allowed_hosts=HOSTS)
+        self.assertEqual(self.client.crawl_delay(self.site.base + "/a"), 0.0)
+
     def test_host_allowed(self):
         self.assertTrue(host_allowed("https://www.gutenberg.org/x", ("www.gutenberg.org",)))
         self.assertFalse(host_allowed("https://evil.gutenberg.org.example/x", ("www.gutenberg.org",)))

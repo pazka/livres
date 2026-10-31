@@ -241,6 +241,18 @@ class AgentApiTests(unittest.TestCase):
         self.assertEqual((events[0]["actor"], events[0]["action"]), ("agent", "disable"))
         self.assertEqual(self.srv.json("POST", "/api/v1/admin/sources/nope/disable", {}, self.AUTH)[0], 404)
 
+    def test_audit_lists_every_indexed_book_of_a_source(self):
+        from helpers import book
+        store = self.srv.sv.store
+        store.replace_source_books("gutenberg", [book(f"gutenberg:{i}", f"Livre {i:03d}", source_id="gutenberg") for i in range(503)])
+        self.assertEqual(self.srv.json("GET", "/api/v1/admin/sources/gutenberg/books")[0], 401)
+        status, body = self.srv.json("GET", "/api/v1/admin/sources/gutenberg/books", headers=self.AUTH)
+        self.assertEqual((status, body["total"], len(body["books"])), (200, 503, 500))
+        self.assertEqual(body["books"][0]["title"], "Livre 000")
+        status, body = self.srv.json("GET", "/api/v1/admin/sources/gutenberg/books?offset=500", headers=self.AUTH)
+        self.assertEqual([b["title"] for b in body["books"]], ["Livre 500", "Livre 501", "Livre 502"])
+        self.assertEqual(self.srv.json("GET", "/api/v1/admin/sources/nope/books", headers=self.AUTH)[0], 404)
+
     def test_add_validate_and_delete_runtime_opds_source(self):
         raw = {
             "id": "exemple", "name": "Exemple", "kind": "opds1", "homepage": "https://opds.example/",

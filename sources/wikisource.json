@@ -4,15 +4,28 @@
   "kind": "opds1",
   "homepage": "https://fr.wikisource.org/",
   "legal": "Bibliothèque libre de la Wikimedia Foundation : textes du domaine public ou sous licence libre, exportés en EPUB par l'outil officiel WS Export.",
-  "modes": ["harvest"],
+  "modes": [
+    "harvest"
+  ],
   "config": {
     "harvest_url": "https://ws-export.wmcloud.org/opds/fr/Bon_pour_export.xml",
-    "languages": ["fr"],
+    "languages": [
+      "fr"
+    ],
     "max_pages": 50
   },
-  "allowed_hosts": ["ws-export.wmcloud.org", "fr.wikisource.org", "upload.wikimedia.org"],
-  "canary": {"query": "Hugo", "min_results": 3, "check_download": false},
+  "allowed_hosts": [
+    "ws-export.wmcloud.org",
+    "fr.wikisource.org",
+    "upload.wikimedia.org"
+  ],
+  "canary": {
+    "query": "Hugo",
+    "min_results": 3,
+    "check_download": false
+  },
   "priority": 30,
-  "status": "verified",
-  "notes": "The official WS Export tool publishes one OPDS file per wiki category: fr/Bon_pour_export.xml lists the works the French community marked ready for export (about 9 MB). Harvested weekly. check_download is off because each EPUB is generated on demand (slow, ~30 s) and we must not load WS Export for a health check."
+  "status": "candidate",
+  "notes": "2026-10-31: disabled. ws-export.wmcloud.org is now behind Anubis bot protection (even robots.txt answers a challenge page), so neither we nor the app can download its EPUBs (issue #9). Replaced by beq. If WS Export opens again to robots, the daily canary opens a source-candidate-ok issue: then re-verify (AGENTS.md P1a). The official WS Export tool publishes one OPDS file per wiki category: fr/Bon_pour_export.xml lists the works the French community marked ready for export (about 9 MB). Harvested weekly. check_download is off because each EPUB is generated on demand (slow, ~30 s) and we must not load WS Export for a health check.",
+  "enabled": false
 }

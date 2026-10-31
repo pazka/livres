@@ -137,6 +137,7 @@ class App:
             ("POST", r"/api/v1/admin/sources/(?P<sid>[a-z0-9-]+)/(?P<action>enable|disable|reset|check|harvest)", self.agent(self.api_source_action)),
             ("DELETE", r"/api/v1/admin/sources/(?P<sid>[a-z0-9-]+)", self.agent(self.api_delete_source)),
             ("GET", r"/api/v1/admin/requests", self.agent(self.api_requests)),
+            ("GET", r"/api/v1/admin/sources/(?P<sid>[a-z0-9-]+)/books", self.agent(self.api_source_books)),
         ]
         self._compiled = [(m, re.compile(p + r"\Z"), h) for m, p, h in self.routes]
 
@@ -347,6 +348,21 @@ class App:
     def api_delete_source(self, req, sid):
         ok, message = self._source_action(sid, "delete", "agent API", "agent")
         return Response.json({"ok": ok, "message": message}, 200 if ok else 409)
+
+    def api_source_books(self, req, sid):
+        """Audit: every book indexed for a harvested source (?offset=N, 500 per page)."""
+        if self.catalog.get(sid) is None:
+            return Response.json({"error": f"unknown source '{sid}'"}, 404)
+        try:
+            offset = max(0, int(req.query.get("offset", "0")))
+        except ValueError:
+            offset = 0
+        books = self.store.list_books(sid, 500, offset)
+        return Response.json({
+            "source": sid, "total": self.store.count_books(sid), "offset": offset,
+            "books": [{"identifier": b.identifier, "title": b.title, "authors": list(b.authors),
+                       "links": [a.href for a in b.sorted_acquisitions()]} for b in books],
+        })
 
     def api_requests(self, req):
         return Response.json({"requests": [dict(r) for r in self.store.list_requests()]})

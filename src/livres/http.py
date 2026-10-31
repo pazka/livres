@@ -3,7 +3,8 @@
 Guarantees (each has a test in tests/test_http.py):
   * robots.txt is honoured for every URL (RFC 9309: 4xx = allowed, 5xx/unreachable = disallowed);
   * only hosts declared by the source are contacted, redirects included;
-  * at most one request per host every `min_interval` seconds;
+  * at most one request per host every `min_interval` seconds, or every robots.txt `Crawl-delay`
+    seconds when the site asks for more;
   * bodies are capped (no memory blow-up from a hostile or broken server);
   * a clear User-Agent with a contact page.
 """
@@ -76,6 +77,7 @@ class _RedirectGuard(urllib.request.HTTPRedirectHandler):
 class PoliteHttpClient:
     ROBOTS_TTL = 24 * 3600
     ROBOTS_RETRY = 300  # an unreadable robots.txt is retried after 5 minutes
+    MAX_CRAWL_DELAY = 60  # a larger Crawl-delay is capped (a harvest must still finish)
 
     def __init__(self, user_agent: str, timeout: float = 10.0, min_interval: float = 1.0, opener_factory=None):
         self.user_agent = user_agent
@@ -103,7 +105,7 @@ class PoliteHttpClient:
         # (allowed_by_robots raises FetchError("network"/"http") when robots.txt cannot be read)
         host = urllib.parse.urlsplit(url).hostname or ""
         with self._host_lock(host):
-            self._throttle(host)
+            self._throttle(host, self.crawl_delay(url))
             req = urllib.request.Request(url, headers={"User-Agent": self.user_agent, **headers})
             try:
                 with self._opener_factory(tuple(allowed_hosts)).open(req, timeout=self.timeout) as resp:
@@ -137,6 +139,18 @@ class PoliteHttpClient:
             raise parser
         return parser.can_fetch(self.user_agent, url)
 
+    def crawl_delay(self, url: str) -> float:
+        """The robots.txt Crawl-delay for our user agent (0 when absent). Call after allowed_by_robots."""
+        parts = urllib.parse.urlsplit(url)
+        with self._lock:
+            cached = self._robots.get(f"{parts.scheme}://{parts.netloc}")
+        if cached is None or isinstance(cached[1], FetchError):
+            return 0.0
+        try:
+            return float(cached[1].crawl_delay(self.user_agent) or 0)
+        except (TypeError, ValueError):
+            return 0.0
+
     def _load_robots(self, origin, allowed_hosts):
         parser = urllib.robotparser.RobotFileParser()
         req = urllib.request.Request(origin + "/robots.txt", headers={"User-Agent": self.user_agent})
@@ -161,10 +175,10 @@ class PoliteHttpClient:
         with self._lock:
             return self._host_locks.setdefault(host, threading.Lock())
 
-    def _throttle(self, host):
+    def _throttle(self, host, crawl_delay: float = 0.0):
         last = self._last_hit.get(host)
         if last is not None:
-            wait = self.min_interval - (time.monotonic() - last)
+            wait = max(self.min_interval, min(crawl_delay, self.MAX_CRAWL_DELAY)) - (time.monotonic() - last)
             if wait > 0:
                 time.sleep(wait)
         self._last_hit[host] = time.monotonic()
