@@ -1,0 +1,17 @@
+name: probe-tmp
+# TEMPORARY, removed before merge: the build sandbox cannot reach the sources, GitHub can.
+on:
+  push:
+    branches: ["claude/**"]
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - run: python .probe/probe.py .probe/urls.txt
