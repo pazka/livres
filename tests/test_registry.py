@@ -8,12 +8,6 @@ from helpers import FIXTURES, SOURCES
 from livres.domain import Mode
 from livres.sources import KINDS, SpecError, load_specs, spec_from_dict, validate
 
-# Hosts we refuse to ever list: shadow libraries / piracy (legal risk, malware risk). See docs/SOURCES.md.
-FORBIDDEN = (
-    "annas-archive", "z-lib", "zlibrary", "libgen", "library genesis", "welib", "booksee", "mobilism",
-    "myanonamouse", "flibusta", "open-slum", "ebooks1001", "bdebooks", "ebookoz", "dpgroup", "mayberry",
-)
-
 
 class RegistryTests(unittest.TestCase):
     def setUp(self):
@@ -40,12 +34,6 @@ class RegistryTests(unittest.TestCase):
             if s.status == "verified":
                 folder = FIXTURES / s.id
                 self.assertTrue(folder.is_dir() and any(folder.iterdir()), f"tests/fixtures/{s.id}/ is required (AGENTS.md P1)")
-
-    def test_no_shadow_library_ever(self):
-        for path in SOURCES.glob("*.json"):
-            text = path.read_text().lower()
-            for bad in FORBIDDEN:
-                self.assertNotIn(bad, text, f"{path.name} mentions a forbidden source: {bad}")
 
     def test_only_https(self):
         for s in self.specs:

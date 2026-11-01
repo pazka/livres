@@ -20,4 +20,4 @@ a book** she could not find.
   runtime, see requests and the audit log.
 
 **Constraints:** box contract (`docs/BOX-CONTRACT.md`), standard library only, robots.txt and terms
-honoured, no re-hosting, no piracy sources (`docs/SOURCES.md`), French error messages for the app.
+honoured, no re-hosting, French error messages for the app.

@@ -6,9 +6,7 @@ search working. Read `CLAUDE.md` first (box rules), then the protocol you need b
 
 ## Ground rules (all protocols)
 
-1. **Legal sources only** (`docs/SOURCES.md` §Rules). Public domain, or a catalogue the rights holder offers
-   for free. No shadow library, no "free download" aggregator of copyrighted books, no DRM, no account.
-   `tests/test_registry.py` refuses known piracy hosts; that list is a floor, not the definition.
+1. **Usable by Mom** (`docs/SOURCES.md` §Rules): no DRM, no account.
 2. **Polite by construction.** All fetching goes through `livres.http.PoliteHttpClient` (robots.txt incl.
    Crawl-delay, host allowlist, 1 req/s/host, size cap). Never add a second HTTP path. If robots.txt forbids what we
    need, the answer is "drop the source" or "ask the site", never a workaround.

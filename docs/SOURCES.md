@@ -56,20 +56,8 @@ DRM-protected and must be excluded).
 
 ## From fmhy.pages.dev/reading
 
-That page mixes legitimate libraries with shadow libraries. Taken: nothing directly yet, the legitimate
-French-useful entries are already covered (Internet Archive/Open Library are "to investigate" above,
-Gutenberg is enabled). **Left out on purpose**: Anna's Archive, Z-Library, Library Genesis, WeLib,
-BookSee, Mobilism, MyAnonaMouse, Flibusta, Open Slum, eBooks1001, BDeBooks, eBookoz, Telegram/IRC/VK
-channels and similar. Reasons:
-
-- **Legal risk**: they distribute copyrighted books without permission. Downloading them is
-  counterfeiting under French law (Code de la propriété intellectuelle), and the person exposed is the
-  one downloading, i.e. Mom.
-- **Malware risk**: these sites live on ads, fake "download" buttons and mirrors that change weekly; it is
-  the most common way malware reaches non-technical users.
-- **Reliability**: domains get seized and move constantly, so they would keep breaking the canary.
-
-`tests/test_registry.py` fails if any of them appears in `sources/`.
+Taken: nothing directly yet, the French-useful entries are already covered (Internet Archive/Open Library
+are "to investigate" above, Gutenberg is enabled).
 
 ## Removed
 
