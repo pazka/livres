@@ -115,7 +115,7 @@ def admin_sources(rows: list[dict], csrf: str, flash: str = "") -> str:
     body.append("</table>")
     body.append(
         "<h2>Ajouter un catalogue OPDS</h2>"
-        "<p class=\"muted\">Seulement des sources légales : domaine public ou catalogue gratuit officiel, sans DRM ni compte. "
+        "<p class=\"muted\">Seulement des sources sans DRM ni compte. "
         "Le catalogue est testé avant d’être enregistré.</p>"
         f'<form method="post" action="/admin/sources"><input type="hidden" name="csrf" value="{e(csrf)}"><div class="grid">'
         '<div><label>Identifiant (minuscules)</label><input name="id" required pattern="[a-z][a-z0-9-]{1,40}"></div>'

@@ -1,6 +1,6 @@
 # CLAUDE.md — pazka/livres
 
-Legal French ebook catalogue (OPDS 2.0) for "Ma liseuse", the owner's mother's Kindle app. Spec:
+French ebook catalogue (OPDS 2.0) for "Ma liseuse", the owner's mother's Kindle app. Spec:
 `BRIEF.md`. **Maintenance protocols (add / fix / remove a source, release): `AGENTS.md`** — read it
 before any change. Architecture: `docs/ARCHITECTURE.md`. Sources and why: `docs/SOURCES.md`.
 Owner: Alexandre (pazka).

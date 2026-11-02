@@ -1,14 +1,12 @@
 # AGENTS.md — how an agent maintains livres
 
-You are maintaining **livres.hosh.it**, the legal French ebook catalogue behind "Ma liseuse", the Windows
+You are maintaining **livres.hosh.it**, the French ebook catalogue behind "Ma liseuse", the Windows
 app the owner (Alexandre, `pazka`) built for his mother. She is not technical. Every change must keep her
 search working. Read `CLAUDE.md` first (box rules), then the protocol you need below.
 
 ## Ground rules (all protocols)
 
-1. **Legal sources only** (`docs/SOURCES.md` §Rules). Public domain, or a catalogue the rights holder offers
-   for free. No shadow library, no "free download" aggregator of copyrighted books, no DRM, no account.
-   `tests/test_registry.py` refuses known piracy hosts; that list is a floor, not the definition.
+1. **Usable by Mom** (`docs/SOURCES.md` §Rules): no DRM, no account.
 2. **Polite by construction.** All fetching goes through `livres.http.PoliteHttpClient` (robots.txt incl.
    Crawl-delay, host allowlist, 1 req/s/host, size cap). Never add a second HTTP path. If robots.txt forbids what we
    need, the answer is "drop the source" or "ask the site", never a workaround.
@@ -134,7 +132,7 @@ the app (repo `pazka/kindle-for-mom`) can copy the golden files into its tests.
 
 ## P6 — Book requests
 
-Requests arrive by e-mail to the owner and in `/admin/requests`. Agents may search legal sources for a
+Requests arrive by e-mail to the owner and in `/admin/requests`. Agents may search the sources for a
 requested book and comment with links, but never fetch a copy from a non-listed site and never reply to
 Mom directly.
 

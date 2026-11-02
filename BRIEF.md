@@ -1,7 +1,7 @@
 # livres — brief
 
 **What:** a small service on livres.hosh.it that lets "Ma liseuse" (the owner's mother's Windows app for
-her Kindle 4) search many **legal, free, French** ebook sources at once, and lets her **ask the owner for
+her Kindle 4) search many **free, French** ebook sources at once, and lets her **ask the owner for
 a book** she could not find.
 
 **Users:** Mom (through the app only, never the web page), the owner (admin page, e-mails), agents
@@ -20,4 +20,4 @@ a book** she could not find.
   runtime, see requests and the audit log.
 
 **Constraints:** box contract (`docs/BOX-CONTRACT.md`), standard library only, robots.txt and terms
-honoured, no re-hosting, no piracy sources (`docs/SOURCES.md`), French error messages for the app.
+honoured, no re-hosting, French error messages for the app.

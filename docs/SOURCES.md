@@ -6,20 +6,15 @@ Last reviewed: 2026-10-31 (Wikisource disabled, BEQ added). Machine-readable tru
 
 A source is acceptable only if **all** of these hold:
 
-1. **Legal**: works in the public domain *in France* (author and translator dead for more than 70 years;
-   authors "morts pour la France" get 30 more years: `MORTS_POUR_LA_FRANCE` in `sources/gutenberg.py`
-   lists the known ones and is applied by every filter), or offered for free by the rights holder or
-   an official distributor.
-2. **Directly usable by Mom**: no account, no DRM (Adobe ADEPT, LCP…), no app lock-in. EPUB preferred,
+1. **Directly usable by Mom**: no account, no DRM (Adobe ADEPT, LCP…), no app lock-in. EPUB preferred,
    MOBI fine, PDF tolerated (the app marks it orange).
-3. **Polite access**: an official machine interface (OPDS, documented API or catalogue dump) that robots.txt
+2. **Polite access**: an official machine interface (OPDS, documented API or catalogue dump) that robots.txt
    and the terms allow. We never re-host books: the app downloads from the source itself.
 
 > **Owner's decision, 2026-10-31: full library for now.** The French public-domain filters
 > (`france_public_domain` in `gutenberg` and `beq`) exist, are tested, and are **switched off** so that each
 > source gives its whole French catalogue; the owner will decide later whether to turn them on. Audit what is
-> indexed with `GET /api/v1/admin/sources/<id>/books`. Rule 1 below is therefore not enforced for those two
-> sources until then.
+> indexed with `GET /api/v1/admin/sources/<id>/books`.
 
 ## Enabled (verified)
 
@@ -56,20 +51,8 @@ DRM-protected and must be excluded).
 
 ## From fmhy.pages.dev/reading
 
-That page mixes legitimate libraries with shadow libraries. Taken: nothing directly yet, the legitimate
-French-useful entries are already covered (Internet Archive/Open Library are "to investigate" above,
-Gutenberg is enabled). **Left out on purpose**: Anna's Archive, Z-Library, Library Genesis, WeLib,
-BookSee, Mobilism, MyAnonaMouse, Flibusta, Open Slum, eBooks1001, BDeBooks, eBookoz, Telegram/IRC/VK
-channels and similar. Reasons:
-
-- **Legal risk**: they distribute copyrighted books without permission. Downloading them is
-  counterfeiting under French law (Code de la propriété intellectuelle), and the person exposed is the
-  one downloading, i.e. Mom.
-- **Malware risk**: these sites live on ads, fake "download" buttons and mirrors that change weekly; it is
-  the most common way malware reaches non-technical users.
-- **Reliability**: domains get seized and move constantly, so they would keep breaking the canary.
-
-`tests/test_registry.py` fails if any of them appears in `sources/`.
+Taken: nothing directly yet, the French-useful entries are already covered (Internet Archive/Open Library
+are "to investigate" above, Gutenberg is enabled).
 
 ## Removed
 
