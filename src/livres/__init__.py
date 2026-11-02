@@ -1,4 +1,4 @@
-"""livres: legal French ebook catalogue for "Ma liseuse" (https://livres.hosh.it).
+"""livres: French ebook catalogue for "Ma liseuse" (https://livres.hosh.it).
 
 Layers (see docs/ARCHITECTURE.md):
     domain      pure data types, no I/O

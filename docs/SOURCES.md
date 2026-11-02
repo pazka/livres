@@ -6,20 +6,15 @@ Last reviewed: 2026-10-31 (Wikisource disabled, BEQ added). Machine-readable tru
 
 A source is acceptable only if **all** of these hold:
 
-1. **Legal**: works in the public domain *in France* (author and translator dead for more than 70 years;
-   authors "morts pour la France" get 30 more years: `MORTS_POUR_LA_FRANCE` in `sources/gutenberg.py`
-   lists the known ones and is applied by every filter), or offered for free by the rights holder or
-   an official distributor.
-2. **Directly usable by Mom**: no account, no DRM (Adobe ADEPT, LCP…), no app lock-in. EPUB preferred,
+1. **Directly usable by Mom**: no account, no DRM (Adobe ADEPT, LCP…), no app lock-in. EPUB preferred,
    MOBI fine, PDF tolerated (the app marks it orange).
-3. **Polite access**: an official machine interface (OPDS, documented API or catalogue dump) that robots.txt
+2. **Polite access**: an official machine interface (OPDS, documented API or catalogue dump) that robots.txt
    and the terms allow. We never re-host books: the app downloads from the source itself.
 
 > **Owner's decision, 2026-10-31: full library for now.** The French public-domain filters
 > (`france_public_domain` in `gutenberg` and `beq`) exist, are tested, and are **switched off** so that each
 > source gives its whole French catalogue; the owner will decide later whether to turn them on. Audit what is
-> indexed with `GET /api/v1/admin/sources/<id>/books`. Rule 1 below is therefore not enforced for those two
-> sources until then.
+> indexed with `GET /api/v1/admin/sources/<id>/books`.
 
 ## Enabled (verified)
 

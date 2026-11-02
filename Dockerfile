@@ -5,7 +5,7 @@ FROM python:3.13-slim@sha256:2d44738ebf4ce5f63b9d9ea871e9c7cfdc0426f7b0c97cac915
 ARG VERSION=0.0.0-dev
 ARG REVISION=unknown
 LABEL org.opencontainers.image.title="livres" \
-      org.opencontainers.image.description="Legal French ebook catalogue (OPDS 2.0) for Ma liseuse" \
+      org.opencontainers.image.description="French ebook catalogue (OPDS 2.0) for Ma liseuse" \
       org.opencontainers.image.version="${VERSION}" \
       org.opencontainers.image.revision="${REVISION}" \
       org.opencontainers.image.licenses="MIT"

@@ -1,6 +1,6 @@
 # AGENTS.md — how an agent maintains livres
 
-You are maintaining **livres.hosh.it**, the legal French ebook catalogue behind "Ma liseuse", the Windows
+You are maintaining **livres.hosh.it**, the French ebook catalogue behind "Ma liseuse", the Windows
 app the owner (Alexandre, `pazka`) built for his mother. She is not technical. Every change must keep her
 search working. Read `CLAUDE.md` first (box rules), then the protocol you need below.
 
@@ -132,7 +132,7 @@ the app (repo `pazka/kindle-for-mom`) can copy the golden files into its tests.
 
 ## P6 — Book requests
 
-Requests arrive by e-mail to the owner and in `/admin/requests`. Agents may search legal sources for a
+Requests arrive by e-mail to the owner and in `/admin/requests`. Agents may search the sources for a
 requested book and comment with links, but never fetch a copy from a non-listed site and never reply to
 Mom directly.
 

@@ -1,6 +1,6 @@
 # livres
 
-https://livres.hosh.it — legal, free, French ebooks for "Ma liseuse" (OPDS 2.0 catalogue + "ask for a
+https://livres.hosh.it — free French ebooks for "Ma liseuse" (OPDS 2.0 catalogue + "ask for a
 book" by e-mail). Python standard library only.
 
 | Read | For |
