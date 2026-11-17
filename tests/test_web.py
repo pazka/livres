@@ -162,7 +162,7 @@ class PublicApiTests(unittest.TestCase):
         self.assertEqual(status, 200)
         css = data.decode()
         self.assertIn("input,textarea,select{max-width:100%}", css)
-        self.assertIn("@media (max-width:600px){.grid{grid-template-columns:minmax(0,1fr)}}", css)
+        self.assertIn("@media (max-width:600px){.grid{grid-template-columns:minmax(0,1fr)}table.wide{display:block;overflow-x:auto}}", css)
 
 
 class AdminTests(unittest.TestCase):
@@ -205,6 +205,13 @@ class AdminTests(unittest.TestCase):
         self.assertEqual(feed["publications"], [])
         self.srv.request("POST", "/admin/sources/ebooksgratuits/reset", f"csrf={csrf}", {"Cookie": cookie})
         self.assertEqual(self.srv.sv.store.overrides(), {})
+
+    def test_sources_table_scrolls_on_its_own_on_a_phone(self):
+        # hosh-management#34: the sources table (4 columns + action buttons) is wider than a phone; it is
+        # the one table marked `wide`, which scrolls inside itself below 600 px (see the stylesheet test).
+        cookie, _ = self.login()
+        _, _, page = self.srv.request("GET", "/admin", headers={"Cookie": cookie})
+        self.assertIn('<table class="wide"><tr><th>Source</th>', page.decode())
 
     def test_tampered_cookie_is_rejected(self):
         cookie, _ = self.login()

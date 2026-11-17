@@ -19,7 +19,7 @@ form.inline{display:inline}table{border-collapse:collapse;width:100%;font-size:.
 .state-ok{color:var(--ok)}.state-degraded,.state-unknown{color:var(--warn)}.state-down,.state-blocked{color:var(--bad)}
 nav a{margin-right:1rem}.msg{padding:.6rem 1rem;background:#fff;border:1px solid var(--line);border-radius:6px;margin:1rem 0}
 label{display:block;margin:.5rem 0 .2rem}.grid{display:grid;grid-template-columns:1fr 1fr;gap:.5rem 1rem}
-input,textarea,select{max-width:100%}@media (max-width:600px){.grid{grid-template-columns:minmax(0,1fr)}}
+input,textarea,select{max-width:100%}@media (max-width:600px){.grid{grid-template-columns:minmax(0,1fr)}table.wide{display:block;overflow-x:auto}}
 """
 
 
@@ -96,7 +96,7 @@ def admin_sources(rows: list[dict], csrf: str, flash: str = "") -> str:
     body = ["<h1>Sources</h1>"]
     if flash:
         body.append(f'<p class="msg">{e(flash)}</p>')
-    body.append("<table><tr><th>Source</th><th>État</th><th>Dernière vérification</th><th>Actions</th></tr>")
+    body.append("<table class=\"wide\"><tr><th>Source</th><th>État</th><th>Dernière vérification</th><th>Actions</th></tr>")
     for r in rows:
         actions = [button(r["id"], "check", "Tester", "secondary")]
         actions.append(button(r["id"], "disable", "Désactiver", "secondary") if r["enabled"] else button(r["id"], "enable", "Activer"))
