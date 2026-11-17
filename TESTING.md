@@ -44,11 +44,7 @@ Not covered: the OPDS feeds (JSON, tested by `tests/`), admin actions that chang
 (Tester, Activer/Désactiver, Recharger, Supprimer, Ajouter: they call the network or change the data of the
 other cases), the request rate-limit messages, and the mail.
 
-**Known layout issue, recorded in the baselines as it is today:** at 390 px the public page is 649 px wide
-(the request form's message box, `cols=60`, and the search box, `size=40`), and the admin sources page is 528 px wide (the
-add-catalogue form). So a phone shows a horizontal scroll. Issue: pazka/hosh-management (see the PR). A fix
-changes these baselines on purpose. N1 is plain text without a viewport, so a phone lays it out at 980 px:
-that is expected.
+**Phone width (390 px):** every page fits the screen: form controls are capped at the width of their container and the two-column form grid becomes one column below 600 px (fixed in pazka/hosh-management#34; `tests/test_web.py::test_stylesheet_keeps_forms_inside_a_phone_screen`). The harness fails on any change of page size, so a regression to a horizontal scroll shows in the 390 px shots. N1 is plain text without a viewport, so a phone lays it out at 980 px: that is expected.
 
 **Renewing the baselines** (only in a PR that says the visual change is wanted):
 `bash visual/run.sh livres:local --update`, look at every changed picture, commit. Baselines are only

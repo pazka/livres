@@ -19,6 +19,7 @@ form.inline{display:inline}table{border-collapse:collapse;width:100%;font-size:.
 .state-ok{color:var(--ok)}.state-degraded,.state-unknown{color:var(--warn)}.state-down,.state-blocked{color:var(--bad)}
 nav a{margin-right:1rem}.msg{padding:.6rem 1rem;background:#fff;border:1px solid var(--line);border-radius:6px;margin:1rem 0}
 label{display:block;margin:.5rem 0 .2rem}.grid{display:grid;grid-template-columns:1fr 1fr;gap:.5rem 1rem}
+input,textarea,select{max-width:100%}@media (max-width:600px){.grid{grid-template-columns:minmax(0,1fr)}}
 """
 
 
