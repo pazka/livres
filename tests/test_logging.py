@@ -15,7 +15,7 @@ from helpers import TempDir
 from test_web import PASSWORD, Server
 
 from livres import logs as logs_mod
-from livres.main import run_health_checks, serve
+from livres.main import Scheduler, run_health_checks, serve
 from livres.web import app as app_mod
 from livres.web.app import Response, route_template
 from livres.web.server import make_server
@@ -201,6 +201,68 @@ class LoggingTests(unittest.TestCase):
         self.assertEqual({r["source"] for r in recs}, {spec.id})
         self.assertEqual(recs[1]["level"], "warn")
         self.assertIsInstance(recs[1]["dur_ms"], int)
+
+    def test_canary_crash_logs_one_error_line(self):
+        """An adapter bug in the canary (not a SourceError) is reported as a failure and logged, never raised."""
+        monitor = self.srv.sv.monitor
+        spec = next(iter(self.srv.sv.catalog.specs()))
+        boom = mock.Mock()
+        boom.search.side_effect = RuntimeError("adapter bug")
+        with mock.patch.object(self.srv.sv.catalog, "adapter", return_value=boom), \
+                mock.patch.object(monitor, "_index_canary", side_effect=RuntimeError("adapter bug")):
+            self.logs.read()
+            result = monitor.check(spec)
+        self.assertFalse(result.ok)
+        self.assertIn("bug: RuntimeError", result.detail)
+        crashes = [r for r in self.logs.read() if r["event"] == "canary_crashed"]
+        self.assertEqual(len(crashes), 1)
+        rec = crashes[0]
+        check_format(self, rec)
+        self.assertEqual((rec["level"], rec["source"], rec["err"]["type"]), ("error", spec.id, "RuntimeError"))
+
+    def test_harvest_crash_logs_one_error_line_with_dur_ms(self):
+        """An adapter bug during a harvest returns (False, 'bug: ...') with a harvest_crashed line, never raises."""
+        spec = next(s for s in self.srv.sv.catalog.specs() if "harvest" in [m.value for m in s.modes])
+        boom = mock.Mock()
+        boom.harvest.side_effect = RuntimeError("adapter bug")
+        with mock.patch.object(self.srv.sv.catalog, "adapter", return_value=boom):
+            self.logs.read()
+            ok, detail = self.srv.sv.monitor.harvest(spec)
+        self.assertFalse(ok)
+        self.assertTrue(detail.startswith("bug: RuntimeError"), detail)
+        recs = [r for r in self.logs.read() if r["event"].startswith("harvest")]
+        self.assertEqual([r["event"] for r in recs], ["harvest_start", "harvest_crashed"])
+        rec = recs[1]
+        check_format(self, rec)
+        self.assertEqual((rec["level"], rec["source"], rec["err"]["type"]), ("error", spec.id, "RuntimeError"))
+        self.assertIsInstance(rec["dur_ms"], int)
+
+    def test_scheduler_tick_failure_logs_and_keeps_running(self):
+        """A tick that raises is logged as scheduler_failed and the loop runs the next tick."""
+
+        class NoWait(threading.Event):
+            def wait(self, timeout=None):
+                return self.is_set()
+
+        stop = NoWait()
+        calls = []
+
+        def harvest_due():
+            calls.append(1)
+            if len(calls) == 1:
+                raise RuntimeError("tick bug")
+            stop.set()  # second tick: the loop survived the first one
+            return []
+
+        with mock.patch.object(self.srv.sv.monitor, "harvest_due", side_effect=harvest_due), \
+                mock.patch.object(self.srv.sv.mailer, "flush"):
+            self.logs.read()
+            Scheduler(self.srv.sv, stop).run()
+        self.assertEqual(len(calls), 2)
+        recs = [r for r in self.logs.read() if r["event"] == "scheduler_failed"]
+        self.assertEqual(len(recs), 1)
+        check_format(self, recs[0])
+        self.assertEqual((recs[0]["level"], recs[0]["err"]["type"]), ("error", "RuntimeError"))
 
     def test_plain_text_and_exception_lines(self):
         log = logging.getLogger("livres.test")
