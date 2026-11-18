@@ -11,7 +11,7 @@ import threading
 import unittest
 from unittest import mock
 
-from helpers import TempDir
+from helpers import TempDir, book
 from test_web import PASSWORD, Server
 
 from livres import logs as logs_mod
@@ -93,6 +93,22 @@ class LoggingTests(unittest.TestCase):
         self.assertNotIn("must-not-appear", json.dumps(recs))
         self.assertGreaterEqual(len(start["sources"]), 3)
         self.assertEqual([r["event"] for r in recs][-1], "shutdown")
+
+    def test_startup_line_reports_an_unwritable_data_dir(self):
+        """A read-only or missing /data gives data_dir_writable false; serve still runs and shuts down cleanly."""
+        server = make_server(self.srv.sv.app, "127.0.0.1", 0)
+        self.addCleanup(server.server_close)
+        with mock.patch("pathlib.Path.write_text", side_effect=PermissionError("read-only file system")):
+            threading.Timer(0.3, server.shutdown).start()
+            serve(self.srv.sv, server)
+        recs = self.logs.read()
+        for r in recs:
+            check_format(self, r)
+        events = [r["event"] for r in recs]
+        self.assertIn("startup", events)
+        self.assertEqual(events[-1], "shutdown")
+        start = next(r for r in recs if r["event"] == "startup")
+        self.assertIs(start["data_dir_writable"], False)
 
     def test_unhandled_error_logs_one_error_line_with_err(self):
         app = self.srv.sv.app
@@ -201,6 +217,26 @@ class LoggingTests(unittest.TestCase):
         self.assertEqual({r["source"] for r in recs}, {spec.id})
         self.assertEqual(recs[1]["level"], "warn")
         self.assertIsInstance(recs[1]["dur_ms"], int)
+
+    def test_successful_harvest_logs_end_line_with_books_and_dur_ms(self):
+        spec = next(s for s in self.srv.sv.catalog.specs() if "harvest" in [m.value for m in s.modes])
+        books = [book(f"{spec.id}:{i}", f"Livre {i}", source_id=spec.id) for i in range(3)]
+        adapter = mock.Mock()
+        adapter.harvest.return_value = books
+        with mock.patch.object(self.srv.sv.catalog, "adapter", return_value=adapter):
+            self.logs.read()
+            ok, detail = self.srv.sv.monitor.harvest(spec)
+        self.assertTrue(ok, detail)
+        stored = self.srv.sv.monitor.store.count_books(spec.id)
+        self.assertEqual(stored, 3)
+        recs = [r for r in self.logs.read() if r["event"].startswith("harvest")]
+        self.assertEqual([r["event"] for r in recs], ["harvest_start", "harvest"])
+        end = recs[1]
+        check_format(self, end)
+        self.assertEqual((end["level"], end["source"]), ("info", spec.id))
+        self.assertIs(type(end["books"]), int)
+        self.assertEqual(end["books"], stored)
+        self.assertIs(type(end["dur_ms"]), int)
 
     def test_canary_crash_logs_one_error_line(self):
         """An adapter bug in the canary (not a SourceError) is reported as a failure and logged, never raised."""
