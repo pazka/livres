@@ -155,6 +155,15 @@ class PublicApiTests(unittest.TestCase):
         self.assertIn(b"Disallow: /admin", data)
         self.assertIn(b"Disallow: /recherche", data)
 
+    def test_stylesheet_keeps_forms_inside_a_phone_screen(self):
+        # hosh-management#34: at 390 px the request form (cols=60) and the search box (size=40) made the
+        # public page 649 px wide, and the two-column add-catalogue grid made /admin 528 px wide.
+        status, headers, data = self.srv.request("GET", "/static/style.css")
+        self.assertEqual(status, 200)
+        css = data.decode()
+        self.assertIn("input,textarea,select{max-width:100%}", css)
+        self.assertIn("@media (max-width:600px){.grid{grid-template-columns:minmax(0,1fr)}table.wide{display:block;overflow-x:auto}}", css)
+
 
 class AdminTests(unittest.TestCase):
     def setUp(self):
@@ -196,6 +205,13 @@ class AdminTests(unittest.TestCase):
         self.assertEqual(feed["publications"], [])
         self.srv.request("POST", "/admin/sources/ebooksgratuits/reset", f"csrf={csrf}", {"Cookie": cookie})
         self.assertEqual(self.srv.sv.store.overrides(), {})
+
+    def test_sources_table_scrolls_on_its_own_on_a_phone(self):
+        # hosh-management#34: the sources table (4 columns + action buttons) is wider than a phone; it is
+        # the one table marked `wide`, which scrolls inside itself below 600 px (see the stylesheet test).
+        cookie, _ = self.login()
+        _, _, page = self.srv.request("GET", "/admin", headers={"Cookie": cookie})
+        self.assertIn('<table class="wide"><tr><th>Source</th>', page.decode())
 
     def test_tampered_cookie_is_rejected(self):
         cookie, _ = self.login()
