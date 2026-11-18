@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import signal
-import sys
 import threading
 import time
 from dataclasses import dataclass
@@ -16,6 +16,7 @@ from .catalog import Catalog
 from .config import Settings
 from .health import HealthMonitor
 from .http import HttpClient, PoliteHttpClient
+from .logs import JsonFormatter, setup_logging  # noqa: F401 - JsonFormatter re-exported
 from .mail import Mailer
 from .search import SearchService
 from .sources import load_specs
@@ -23,27 +24,6 @@ from .store import Store
 from .web.app import App
 from .web.auth import Sessions, load_or_create_key
 from .web.server import make_server
-
-
-class JsonFormatter(logging.Formatter):
-    def format(self, record):
-        msg = record.getMessage()
-        try:
-            data = json.loads(msg)
-            if not isinstance(data, dict):
-                raise ValueError
-        except ValueError:
-            data = {"msg": msg}
-        data = {"ts": round(record.created, 3), "level": record.levelname.lower(), "logger": record.name, **data}
-        if record.exc_info:
-            data["exc"] = self.formatException(record.exc_info)
-        return json.dumps(data, ensure_ascii=False)
-
-
-def setup_logging():
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setFormatter(JsonFormatter())
-    logging.basicConfig(level=logging.INFO, handlers=[handler], force=True)
 
 
 @dataclass
@@ -88,12 +68,50 @@ class Scheduler(threading.Thread):
             try:
                 self.sv.monitor.harvest_due()
                 if time.time() >= next_health:
-                    self.sv.monitor.check_all()
+                    run_health_checks(self.sv.monitor)
                     next_health = time.time() + self.sv.settings.health_interval
                 self.sv.mailer.flush()
             except Exception:
-                log.exception("scheduler tick failed")
+                log.exception(json.dumps({"event": "scheduler_failed", "msg": "scheduler tick failed"}))
             self.stop.wait(60)
+
+
+def run_health_checks(monitor: HealthMonitor) -> list:
+    """The periodic health check job: one line at start, one at the end with dur_ms and counts."""
+    log = logging.getLogger("livres.scheduler")
+    started = time.monotonic()
+    log.info(json.dumps({"event": "health_check_start", "msg": "health check of every enabled source"}))
+    results = monitor.check_all()
+    ok = sum(1 for r in results if r.ok)
+    log.info(json.dumps({"event": "health_check_done", "msg": f"{ok}/{len(results)} sources ok",
+                         "dur_ms": int((time.monotonic() - started) * 1000), "sources": len(results), "ok": ok}))
+    return results
+
+
+def _data_dir_writable(path) -> bool:
+    probe = path / f".write-probe-{os.getpid()}"
+    try:
+        probe.write_text("")
+        probe.unlink()
+        return True
+    except OSError:
+        return False
+
+
+def serve(services: Services, server) -> None:
+    """Runs the HTTP server until it is shut down, between a `startup` and a `shutdown` line."""
+    log = logging.getLogger("livres")
+    settings = services.settings
+    log.info(json.dumps({
+        "event": "startup", "msg": "livres started", "version": __version__, "port": server.server_port,
+        "data_dir_writable": _data_dir_writable(settings.data_dir),
+        "sources": [s.id for s in services.catalog.specs()], "mail": settings.mail_configured,
+        "config": sorted(k for k in os.environ if k.startswith(("LIVRES_", "APP_")) or k == "LOG_LEVEL"),
+    }))
+    try:
+        server.serve_forever()
+    finally:
+        log.info(json.dumps({"event": "shutdown", "msg": "livres stopping"}))
 
 
 def main() -> None:
@@ -111,11 +129,7 @@ def main() -> None:
 
     signal.signal(signal.SIGTERM, shutdown)
     signal.signal(signal.SIGINT, shutdown)
-    logging.getLogger("livres").info(json.dumps({
-        "event": "start", "version": __version__, "port": settings.port,
-        "sources": [s.id for s in services.catalog.specs()], "mail": settings.mail_configured,
-    }))
-    server.serve_forever()
+    serve(services, server)
 
 
 if __name__ == "__main__":

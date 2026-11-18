@@ -72,7 +72,7 @@ class SearchService:
                 errors[spec.id] = f"{e.kind}: {e}"
             except Exception as e:  # an adapter bug must not take the search down
                 errors[spec.id] = f"bug: {type(e).__name__}: {e}"
-                log.exception("adapter crashed")
+                log.exception(json.dumps({"event": "adapter_crashed", "source": spec.id}))
 
         harvested = {spec.id: spec.priority for spec, _ in self.catalog.active(Mode.HARVEST)}
         if harvested:

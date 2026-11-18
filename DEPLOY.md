@@ -86,6 +86,9 @@ failed meanwhile stay in the outbox and go out with the new settings. Check: `/a
 | `LIVRES_REQUESTS_PER_HOUR` / `_PER_DAY` | 5 / 50 | box | book request limits (per install / total) |
 | `LIVRES_MIN_HOST_INTERVAL` | 1 | box | seconds between two requests to one source host |
 | `LIVRES_CACHE_TTL` | 600 | box | search cache seconds |
+| `LOG_LEVEL` | info | box | `debug` also logs every request; `warn` / `error` keep only those |
+
+Logs: one JSON object per line on stdout (hosh-management AGENTS.md section 11): `ts level service version event msg`, `startup` / `shutdown` lines, `health_check_start` / `_done` and `harvest_start` / `harvest` / `harvest_failed` job lines with `dur_ms`. Requests are logged only on 5xx (`error`, with `err`), 4xx under `/admin` and `/api/v1/admin`, or slower than 1 s (`warn`), with the route template (never the raw path), `req_id` (= `X-Request-Id`, echoed in the response) and `dur_ms`. No IP, token, cookie or body.
 
 ## 3. Capability checks (what "works" means — not just a 200)
 `POST_DEPLOY` runs `python -m livres.cli smoke http://127.0.0.1:8000` inside the container (checks 1–5).

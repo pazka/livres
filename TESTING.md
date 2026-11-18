@@ -13,6 +13,8 @@ docker build -t livres:local . && bash visual/run.sh livres:local   # visual reg
 CI (`.github/workflows/ci.yml`): `test` runs the first two; `image` builds, runs the Trivy CRITICAL gate,
 the hardened container smoke (`livres.cli smoke`), then the visual regression.
 
+`tests/test_logging.py` pins the logging standard (hosh-management AGENTS.md section 11): the `startup` and `shutdown` lines (fields, config names without values), one `error` line with `err` {type, message, stack} and the route template on an unhandled exception, which requests are logged at info+ (5xx, admin 4xx, slow) and which stay at debug, `X-Request-Id` echoed or generated, `LOG_LEVEL`, and the health check and harvest job lines.
+
 ## Visual use cases
 
 Harness: `visual/` (hosh-management AGENTS.md section 3). `visual/run.sh` starts the image hardened as on

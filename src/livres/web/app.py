@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
-import hashlib
 import ipaddress
 import json
 import logging
 import re
+import sys
 import time
 import urllib.parse
+import uuid
 from dataclasses import dataclass, field
 from http.cookies import SimpleCookie
 
@@ -27,6 +28,9 @@ from .auth import LoginThrottle, Sessions, token_matches, verify_password
 log = logging.getLogger("livres.web")
 
 MAX_BODY = 64 * 1024
+REQ_ID = re.compile(r"[A-Za-z0-9._:-]{1,64}\Z")
+SLOW_MS = 1000
+AUTH_PREFIXES = ("/admin", "/api/v1/admin")
 COOKIE = "livres_session"
 SECURITY_HEADERS = {
     "Content-Security-Policy": "default-src 'none'; style-src 'self'; img-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
@@ -34,6 +38,21 @@ SECURITY_HEADERS = {
     "Referrer-Policy": "no-referrer",
     "X-Frame-Options": "DENY",
 }
+
+
+def route_template(pattern: str) -> str:
+    """`/admin/sources/(?P<sid>[a-z0-9-]+)/...` -> `/admin/sources/{sid}/...`: logged instead of the raw path."""
+    return re.sub(r"\(\?P<(\w+)>(?:[^()]|\([^()]*\))*\)", r"{\1}", pattern).replace("\\", "")
+
+
+def access_level(route: str, status: int, dur_ms: int) -> int:
+    """AGENTS.md section 11: requests are logged at info+ only when they matter (Traefik has the rest):
+    5xx (error), 4xx on the admin (auth) routes and anything slower than 1 s (warn); the rest at debug."""
+    if status >= 500:
+        return logging.ERROR
+    if (400 <= status < 500 and route.startswith(AUTH_PREFIXES)) or dur_ms > SLOW_MS:
+        return logging.WARNING
+    return logging.DEBUG
 
 
 @dataclass
@@ -45,6 +64,7 @@ class Request:
     body: bytes
     client_ip: str
     cookies: dict[str, str] = field(default_factory=dict)
+    route: str = "unmatched"  # the matched route template, set by App._dispatch
 
     def json(self):
         try:
@@ -139,25 +159,31 @@ class App:
             ("GET", r"/api/v1/admin/requests", self.agent(self.api_requests)),
             ("GET", r"/api/v1/admin/sources/(?P<sid>[a-z0-9-]+)/books", self.agent(self.api_source_books)),
         ]
-        self._compiled = [(m, re.compile(p + r"\Z"), h) for m, p, h in self.routes]
+        self._compiled = [(m, re.compile(p + r"\Z"), h, route_template(p)) for m, p, h in self.routes]
 
     # -- dispatch -------------------------------------------------------------------------------
     def handle(self, req: Request) -> Response:
         started = time.monotonic()
+        given = req.headers.get("x-request-id", "")
+        req_id = given if REQ_ID.match(given) else uuid.uuid4().hex
+        exc_info = None
         try:
             resp = self._dispatch(req)
         except Exception:
-            log.exception("unhandled error")
+            exc_info = sys.exc_info()
             resp = Response.json({"error": "Une erreur est survenue sur le service. Réessayez dans un moment."}, 500)
         for k, v in SECURITY_HEADERS.items():
             resp.headers.setdefault(k, v)
-        if req.path.startswith(("/admin", "/api/v1/admin")):
+        if req.path.startswith(AUTH_PREFIXES):
             resp.headers.setdefault("Cache-Control", "no-store")
-        log.info(json.dumps({
-            "event": "http", "method": req.method, "path": req.path, "status": resp.status,
-            "ms": int((time.monotonic() - started) * 1000),
-            "client": hashlib.sha256(req.client_ip.encode()).hexdigest()[:12],
-        }))
+        resp.headers.setdefault("X-Request-Id", req_id)
+        dur_ms = int((time.monotonic() - started) * 1000)
+        level = access_level(req.route, resp.status, dur_ms)
+        if log.isEnabledFor(level):
+            log.log(level, json.dumps({
+                "event": "http", "msg": f"{req.method} {req.route} {resp.status}", "req_id": req_id,
+                "method": req.method, "route": req.route, "status": resp.status, "dur_ms": dur_ms,
+            }), exc_info=exc_info)
         return resp
 
     def _dispatch(self, req: Request) -> Response:
@@ -165,9 +191,10 @@ class App:
             return Response(404, b"not found")
         method = "GET" if req.method == "HEAD" else req.method
         allowed = False
-        for m, pattern, handler in self._compiled:
+        for m, pattern, handler, template in self._compiled:
             match = pattern.match(req.path)
             if match:
+                req.route = template
                 if m == method:
                     return handler(req, **match.groupdict())
                 allowed = True

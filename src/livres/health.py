@@ -20,6 +20,10 @@ from .sources import SourceError
 
 log = logging.getLogger("livres.health")
 
+def _ms(started: float) -> int:
+    return int((time.monotonic() - started) * 1000)
+
+
 SHRINK_GUARD = 0.5  # a harvest that loses more than half the catalogue is refused (index kept)
 
 
@@ -52,7 +56,7 @@ class HealthMonitor:
         except SourceError as e:
             return self._result(spec, False, f"{e.kind}: {e}", 0, started, blocked=e.kind == "robots")
         except Exception as e:  # adapter bug: report it as a failure, never crash the monitor
-            log.exception("canary crashed")
+            log.exception(json.dumps({"event": "canary_crashed", "source": spec.id}))
             return self._result(spec, False, f"bug: {type(e).__name__}: {e}", 0, started)
 
     def _index_canary(self, spec: SourceSpec) -> list[Book]:
@@ -101,7 +105,7 @@ class HealthMonitor:
         failures = prev["failures"] if prev else 0
         alerted = prev["alerted_state"] if prev else None
         self.store.log_check(spec.id, result.ok, result.detail, result.results, result.duration_ms)
-        log.info(json.dumps({"event": "source_check", "source": spec.id, "ok": result.ok, "detail": result.detail, "ms": result.duration_ms}))
+        log.info(json.dumps({"event": "source_check", "source": spec.id, "ok": result.ok, "detail": result.detail, "dur_ms": result.duration_ms}))
 
         if result.ok:
             state, failures = HealthState.OK, 0
@@ -163,6 +167,8 @@ Vérification : {result.detail}
     # -- harvesting -----------------------------------------------------------------------------
     def harvest(self, spec: SourceSpec) -> tuple[bool, str]:
         hid = self.store.start_harvest(spec.id)
+        started = time.monotonic()
+        log.info(json.dumps({"event": "harvest_start", "source": spec.id}))
         try:
             books = [b for b in self.catalog.adapter(spec).harvest() if b.usable]
             previous = self.store.count_books(spec.id)
@@ -173,15 +179,15 @@ Vérification : {result.detail}
             count = self.store.replace_source_books(spec.id, books)
             self.store.finish_harvest(hid, True, count, "ok")
             self.catalog_changed()
-            log.info(json.dumps({"event": "harvest", "source": spec.id, "books": count}))
+            log.info(json.dumps({"event": "harvest", "source": spec.id, "books": count, "dur_ms": _ms(started)}))
             return True, f"{count} books"
         except SourceError as e:
             self.store.finish_harvest(hid, False, 0, f"{e.kind}: {e}")
-            log.warning(json.dumps({"event": "harvest_failed", "source": spec.id, "error": str(e)}))
+            log.warning(json.dumps({"event": "harvest_failed", "source": spec.id, "error": str(e), "dur_ms": _ms(started)}))
             return False, f"{e.kind}: {e}"
         except Exception as e:
             self.store.finish_harvest(hid, False, 0, f"bug: {e}")
-            log.exception("harvest crashed")
+            log.exception(json.dumps({"event": "harvest_crashed", "source": spec.id, "dur_ms": _ms(started)}))
             return False, f"bug: {type(e).__name__}: {e}"
 
     def harvest_due(self) -> list[tuple[str, bool, str]]:
