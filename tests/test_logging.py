@@ -1,6 +1,7 @@
 """Logging standard (hosh-management AGENTS.md section 11): one JSON object per line on stdout with ts, level,
 service, version, event, msg; startup and shutdown lines; requests logged only when they matter; req_id echoed;
 one error line with `err` and the route template on an unhandled exception; job lines with dur_ms and counts."""
+import hashlib
 import io
 import json
 import logging
@@ -8,6 +9,7 @@ import os
 import re
 import sys
 import threading
+import time
 import unittest
 from unittest import mock
 
@@ -165,6 +167,12 @@ class LoggingTests(unittest.TestCase):
         made = self.srv.request("GET", "/healthz", headers={"X-Request-Id": "bad id with spaces"})[1]
         self.assertRegex(made["x-request-id"], r"^[0-9a-f]{32}$")
 
+    def test_request_id_is_capped_at_64_characters(self):
+        kept = "a" * 64
+        self.assertEqual(self.srv.request("GET", "/healthz", headers={"X-Request-Id": kept})[1]["x-request-id"], kept)
+        made = self.srv.request("GET", "/healthz", headers={"X-Request-Id": "a" * 65})[1]["x-request-id"]
+        self.assertRegex(made, r"^[0-9a-f]{32}$", "a 65-character X-Request-Id is replaced by a generated one")
+
     def test_log_level_debug_logs_every_request(self):
         with mock.patch.dict(os.environ, {"LOG_LEVEL": "debug"}):
             self.logs.install()
@@ -189,6 +197,10 @@ class LoggingTests(unittest.TestCase):
         (rec,) = self.http_lines()
         self.assertEqual((rec["level"], rec["route"], rec["status"]), ("warn", "/slow", 200))
 
+    def test_slow_threshold_is_one_second(self):
+        self.assertEqual(app_mod.access_level("/x", 200, 1001), logging.WARNING)
+        self.assertEqual(app_mod.access_level("/x", 200, 999), logging.DEBUG)
+
     def test_admin_login_still_works_and_logs_nothing_secret(self):
         self.logs.read()
         status, headers, _ = self.srv.request("POST", "/admin/login", "password=" + PASSWORD.replace(" ", "+"))
@@ -205,6 +217,20 @@ class LoggingTests(unittest.TestCase):
         self.assertEqual(done["sources"], len(results))
         self.assertEqual(done["ok"], sum(1 for r in results if r.ok))
         self.assertIsInstance(done["dur_ms"], int)
+
+    def test_source_check_lines(self):
+        self.logs.read()
+        results = run_health_checks(self.srv.sv.monitor)
+        checks = [r for r in self.logs.read() if r["event"] == "source_check"]
+        self.assertEqual(len(checks), len(results))
+        self.assertGreaterEqual(len(checks), 1)
+        for rec in checks:
+            check_format(self, rec)
+            self.assertIsInstance(rec["source"], str)
+            self.assertIsInstance(rec["ok"], bool)
+            self.assertIs(type(rec["dur_ms"]), int)
+        self.assertEqual(sorted((r["source"], r["ok"]) for r in checks),
+                         sorted((r.source_id, r.ok) for r in results))
 
     def test_harvest_job_lines_and_failure(self):
         spec = next(s for s in self.srv.sv.catalog.specs() if "harvest" in [m.value for m in s.modes])
@@ -333,6 +359,12 @@ class LoggingTests(unittest.TestCase):
         raw = json.dumps(recs, ensure_ascii=False)
         self.assertNotIn("BODYTITLE", raw)
         self.assertNotIn("BODYAUTHOR", raw)
+        # the requester stays anonymous in the logs: no IP, no pseudonymous client key (its sha256 prefix)
+        (line,) = [r for r in recs if r["event"] == "book_request"]
+        check_format(self, line)
+        self.assertNotIn("client", line)
+        self.assertNotIn("127.0.0.1", raw)
+        self.assertNotIn(hashlib.sha256(b"ip:127.0.0.1").hexdigest()[:8], raw)
 
     def test_search_words_never_logged_when_a_source_fails(self):
         """An upstream 5xx during a live search: search_partial carries the error kind, never the query."""
