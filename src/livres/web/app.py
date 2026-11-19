@@ -162,17 +162,18 @@ class App:
         self._compiled = [(m, re.compile(p + r"\Z"), h, route_template(p)) for m, p, h in self.routes]
 
     # -- dispatch -------------------------------------------------------------------------------
-    def handle(self, req: Request, too_large: bool = False) -> Response:
+    def handle(self, req: Request, too_large: bool = False, bad_length: bool = False) -> Response:
         """Answer `req` with the security headers, X-Request-Id and the access log line. `too_large`: the
-        server refused the body (Content-Length > MAX_BODY) without reading it; answer 413 the same way."""
+        server refused the body (Content-Length > MAX_BODY) without reading it; answer 413 the same way.
+        `bad_length`: Content-Length is not a non-negative integer; answer 400 the same way."""
         started = time.monotonic()
         given = req.headers.get("x-request-id", "")
         req_id = given if REQ_ID.match(given) else uuid.uuid4().hex
         exc_info = None
         try:
-            if too_large:
+            if too_large or bad_length:
                 self._match_route(req)
-                resp = Response(413, b"request too large")
+                resp = Response(413, b"request too large") if too_large else Response(400, b"bad request")
             else:
                 resp = self._dispatch(req)
         except Exception:

@@ -7,10 +7,13 @@ import json
 import logging
 import os
 import re
+import socket
+import struct
 import sys
 import threading
 import time
 import unittest
+import http.client as http_client
 from unittest import mock
 
 from helpers import TempDir, book
@@ -427,6 +430,82 @@ class LoggingTests(unittest.TestCase):
         self.assertEqual(self.http_lines(), [])
         # the server still answers normally afterwards
         self.assertEqual(self.srv.request("GET", "/healthz")[0], 200)
+
+
+    # -- errors outside App.handle (socket, request line) never reach stderr as a raw traceback --
+    def raw(self, data: bytes) -> bytes:
+        with socket.create_connection(("127.0.0.1", self.srv.port), timeout=10) as sock:
+            sock.sendall(data)
+            out = b""
+            while chunk := sock.recv(65536):
+                out += chunk
+        return out
+
+    def test_bad_content_length_is_answered_400_without_a_traceback(self):
+        with mock.patch("sys.stderr", new_callable=io.StringIO) as err:
+            self.logs.read()
+            answer = self.raw(b"POST /api/v1/requests HTTP/1.1\r\nHost: x\r\nContent-Length: abc\r\n\r\n")
+            answer2 = self.raw(b"POST /api/v1/requests HTTP/1.1\r\nHost: x\r\nContent-Length: -5\r\n\r\n")
+        for a in (answer, answer2):
+            self.assertTrue(a.startswith(b"HTTP/1.1 400 "), a[:80])
+            self.assertIn(b"X-Request-Id: ", a)
+        self.assertEqual(err.getvalue(), "")
+        for r in self.logs.read():
+            check_format(self, r)
+        self.assertEqual(self.srv.request("GET", "/healthz")[0], 200)
+
+    def test_client_reset_mid_answer_logs_one_json_line_and_no_traceback(self):
+        app = self.srv.sv.app
+        started = threading.Event()
+
+        def slow(req):
+            started.set()
+            time.sleep(0.4)  # the client resets the connection meanwhile
+            return Response(200, b"x" * 200_000)
+
+        app._compiled.append(("GET", re.compile(r"/slowreset\Z"), slow, "/slowreset"))
+        with mock.patch.dict(os.environ, {"LOG_LEVEL": "debug"}):
+            self.logs.install()
+        with mock.patch("sys.stderr", new_callable=io.StringIO) as err:
+            self.logs.read()
+            sock = socket.create_connection(("127.0.0.1", self.srv.port), timeout=10)
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_LINGER, struct.pack("ii", 1, 0))
+            sock.sendall(b"GET /slowreset?query=victor+hugo HTTP/1.1\r\nHost: x\r\n\r\n")
+            self.assertTrue(started.wait(5))
+            sock.close()  # SO_LINGER 0: RST
+            recs = []
+            deadline = time.monotonic() + 3
+            while time.monotonic() < deadline and not any(r["event"] == "client_disconnected" for r in recs):
+                time.sleep(0.05)
+                recs += self.logs.read()
+        self.assertEqual(err.getvalue(), "", "no raw traceback on stderr")
+        for r in recs:
+            check_format(self, r)
+        (gone,) = [r for r in recs if r["event"] == "client_disconnected"]
+        self.assertEqual(gone["level"], "debug")
+        raw = json.dumps(recs)
+        self.assertNotIn("127.0.0.1", raw)
+        self.assertNotIn("victor", raw)
+
+    def test_other_error_outside_app_handle_logs_one_error_line(self):
+        with mock.patch("sys.stderr", new_callable=io.StringIO) as err, \
+                mock.patch("livres.web.server.parse_cookies", side_effect=RuntimeError("cookie bug")):
+            self.logs.read()
+            try:
+                self.srv.request("GET", "/healthz")
+            except (ConnectionError, OSError, http_client.HTTPException):
+                pass
+            recs = []
+            deadline = time.monotonic() + 3
+            while time.monotonic() < deadline and not any(r["level"] == "error" for r in recs):
+                time.sleep(0.05)
+                recs += self.logs.read()
+        self.assertEqual(err.getvalue(), "")
+        for r in recs:
+            check_format(self, r)
+        (e,) = [r for r in recs if r["level"] == "error"]
+        self.assertEqual((e["event"], e["err"]["type"], e["err"]["message"]), ("http_crashed", "RuntimeError", "cookie bug"))
+        self.assertNotIn("127.0.0.1", json.dumps(e))
 
 
 if __name__ == "__main__":
