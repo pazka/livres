@@ -162,13 +162,19 @@ class App:
         self._compiled = [(m, re.compile(p + r"\Z"), h, route_template(p)) for m, p, h in self.routes]
 
     # -- dispatch -------------------------------------------------------------------------------
-    def handle(self, req: Request) -> Response:
+    def handle(self, req: Request, too_large: bool = False) -> Response:
+        """Answer `req` with the security headers, X-Request-Id and the access log line. `too_large`: the
+        server refused the body (Content-Length > MAX_BODY) without reading it; answer 413 the same way."""
         started = time.monotonic()
         given = req.headers.get("x-request-id", "")
         req_id = given if REQ_ID.match(given) else uuid.uuid4().hex
         exc_info = None
         try:
-            resp = self._dispatch(req)
+            if too_large:
+                self._match_route(req)
+                resp = Response(413, b"request too large")
+            else:
+                resp = self._dispatch(req)
         except Exception:
             exc_info = sys.exc_info()
             resp = Response.json({"error": "Une erreur est survenue sur le service. Réessayez dans un moment."}, 500)
@@ -185,6 +191,13 @@ class App:
                 "method": req.method, "route": req.route, "status": resp.status, "dur_ms": dur_ms,
             }), exc_info=exc_info)
         return resp
+
+    def _match_route(self, req: Request) -> None:
+        """Set req.route to the template of the first route whose pattern matches the path (any method)."""
+        for _m, pattern, _handler, template in self._compiled:
+            if pattern.match(req.path):
+                req.route = template
+                return
 
     def _dispatch(self, req: Request) -> Response:
         if any(part.startswith(".") for part in req.path.split("/")):

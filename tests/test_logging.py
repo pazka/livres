@@ -314,6 +314,88 @@ class LoggingTests(unittest.TestCase):
         self.assertEqual((crash["event"], crash["level"], crash["err"]["type"]), ("adapter_crashed", "error", "ValueError"))
         self.assertNotIn("err", plain)
 
+    # -- AGENTS.md section 11: no request body, no query string in the logs ----------------------
+    def test_book_request_title_never_logged_when_mail_is_skipped(self):
+        """With LIVRES_OWNER_EMAIL empty the request is still accepted; mail_skipped names no subject or title."""
+        nomail = os.path.join(self.tmp, "nomail")
+        os.makedirs(nomail)
+        srv = Server(nomail, owner_email="")
+        self.addCleanup(srv.close)
+        self.logs.read()
+        status, _ = srv.json("POST", "/api/v1/requests", {"title": "BODYTITLE", "author": "BODYAUTHOR"})
+        self.assertEqual(status, 202)
+        recs = self.logs.read()
+        skipped = [r for r in recs if r["event"] == "mail_skipped"]
+        self.assertEqual(len(skipped), 1, recs)
+        check_format(self, skipped[0])
+        self.assertEqual(skipped[0]["level"], "warn")
+        self.assertNotIn("subject", skipped[0])
+        raw = json.dumps(recs, ensure_ascii=False)
+        self.assertNotIn("BODYTITLE", raw)
+        self.assertNotIn("BODYAUTHOR", raw)
+
+    def test_search_words_never_logged_when_a_source_fails(self):
+        """An upstream 5xx during a live search: search_partial carries the error kind, never the query."""
+        from livres.http import FetchError
+        from test_web import EG_SEARCH
+
+        url = EG_SEARCH.format("USERQUERY")
+        self.srv.http.routes[url] = FetchError("http", f"HTTP 500 for {url}")
+        self.logs.read()
+        status, _ = self.srv.json("GET", "/opds/v2/search?query=USERQUERY")
+        self.assertEqual(status, 200)
+        self.assertIn(url, self.srv.http.calls, "the failing source was really asked")
+        recs = self.logs.read()
+        partial = [r for r in recs if r["event"] == "search_partial"]
+        self.assertEqual(len(partial), 1, recs)
+        check_format(self, partial[0])
+        self.assertEqual(partial[0]["errors"]["ebooksgratuits"], "http")
+        self.assertNotIn("USERQUERY", json.dumps(recs, ensure_ascii=False))
+
+    def test_url_query_strings_are_scrubbed_from_every_line(self):
+        """Fields, msg and err (message and stack) keep scheme, host and path, never the query or fragment."""
+        log = logging.getLogger("livres.test")
+        url = "https://up.example/opds/feed.php?mode=search&query=SECRETWORDS#frag"
+        log.warning(json.dumps({"event": "harvest_failed", "source": "x", "error": f"http: HTTP 500 for {url}"}))
+        try:
+            raise RuntimeError(f"no fake route for {url}")
+        except RuntimeError:
+            log.exception(json.dumps({"event": "adapter_crashed", "source": "x"}))
+        log.info(f"plain {url} words")
+        recs = self.logs.read()
+        self.assertEqual(len(recs), 3)
+        raw = json.dumps(recs, ensure_ascii=False)
+        self.assertNotIn("SECRETWORDS", raw)
+        self.assertNotIn("frag", raw)
+        self.assertEqual(recs[0]["error"], "http: HTTP 500 for https://up.example/opds/feed.php?…")
+        self.assertEqual(recs[1]["err"]["message"], "no fake route for https://up.example/opds/feed.php?…")
+        self.assertIn("https://up.example/opds/feed.php?…", recs[1]["err"]["stack"])
+        self.assertEqual(recs[2]["msg"], "plain https://up.example/opds/feed.php?… words")
+        self.assertEqual(logs_mod.scrub_urls("see https://a.example/p and http://b.example/q?x=1."),
+                         "see https://a.example/p and http://b.example/q?…")
+
+    def test_too_large_body_goes_through_the_request_log_and_id(self):
+        """A body over MAX_BODY is refused unread (413) with X-Request-Id and the auth-route warn line."""
+        self.logs.read()
+        status, headers, body = self.srv.request("POST", "/admin/login", "password=" + "x" * 70_000,
+                                                 headers={"X-Request-Id": "qa-413"})
+        self.assertEqual((status, body), (413, b"request too large"))
+        self.assertEqual(headers["x-request-id"], "qa-413")
+        self.assertEqual(headers["cache-control"], "no-store")
+        self.assertEqual(headers["connection"], "close", "the unread body is never parsed as a request")
+        (rec,) = self.http_lines()
+        check_format(self, rec)
+        self.assertEqual((rec["level"], rec["method"], rec["route"], rec["status"], rec["req_id"]),
+                         ("warn", "POST", "/admin/login", 413, "qa-413"))
+        self.assertNotIn("xxxx", json.dumps(rec))
+        # a public route: same 413 and header, logged at debug only (nothing at info)
+        status, headers, _ = self.srv.request("POST", "/api/v1/requests", "t=" + "y" * 70_000)
+        self.assertEqual(status, 413)
+        self.assertRegex(headers["x-request-id"], r"^[0-9a-f]{32}$")
+        self.assertEqual(self.http_lines(), [])
+        # the server still answers normally afterwards
+        self.assertEqual(self.srv.request("GET", "/healthz")[0], 200)
+
 
 if __name__ == "__main__":
     unittest.main()

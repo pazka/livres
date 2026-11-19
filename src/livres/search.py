@@ -80,7 +80,9 @@ class SearchService:
 
         books = rank(query, found)
         if errors:
-            log.info(json.dumps({"event": "search_partial", "errors": errors}))
+            # kinds only (timeout, http, network, bug...): the error text can name the upstream URL and so the query
+            log.info(json.dumps({"event": "search_partial",
+                                 "errors": {sid: text.split(":", 1)[0] for sid, text in errors.items()}}))
         with self._lock:
             if len(self._cache) > 500:
                 self._cache.clear()

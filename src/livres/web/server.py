@@ -17,10 +17,8 @@ def make_handler(app: App):
         def _serve(self):
             parts = urllib.parse.urlsplit(self.path)
             length = int(self.headers.get("Content-Length") or 0)
-            if length > MAX_BODY:
-                self._send(Response(413, b"request too large"))
-                return
-            body = self.rfile.read(length) if length else b""
+            too_large = length > MAX_BODY  # refused unread, but answered through App.handle (headers, log line)
+            body = self.rfile.read(length) if length and not too_large else b""
             headers = {k.lower(): v for k, v in self.headers.items()}
             req = Request(
                 method=self.command,
@@ -32,7 +30,11 @@ def make_handler(app: App):
                 cookies=parse_cookies(headers.get("cookie")),
             )
             try:
-                self._send(app.handle(req))
+                resp = app.handle(req, too_large=too_large)
+                if too_large:  # the unread body must not be parsed as the next request on this connection
+                    resp.headers["Connection"] = "close"
+                    self.close_connection = True
+                self._send(resp)
             finally:
                 app.store.close_thread()
 

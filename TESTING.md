@@ -13,7 +13,7 @@ docker build -t livres:local . && bash visual/run.sh livres:local   # visual reg
 CI (`.github/workflows/ci.yml`): `test` runs the first two; `image` builds, runs the Trivy CRITICAL gate,
 the hardened container smoke (`livres.cli smoke`), then the visual regression.
 
-`tests/test_logging.py` pins the logging standard (hosh-management AGENTS.md section 11): the `startup` and `shutdown` lines (fields, config names without values), one `error` line with `err` {type, message, stack} and the route template on an unhandled exception, which requests are logged at info+ (5xx, admin 4xx, slow) and which stay at debug, `X-Request-Id` echoed or generated, `LOG_LEVEL`, and the health check and harvest job lines.
+`tests/test_logging.py` pins the logging standard (hosh-management AGENTS.md section 11): the `startup` and `shutdown` lines (fields, config names without values), one `error` line with `err` {type, message, stack} and the route template on an unhandled exception, which requests are logged at info+ (5xx, admin 4xx, slow) and which stay at debug, `X-Request-Id` echoed or generated, `LOG_LEVEL`, the health check and harvest job lines, and what never reaches a log: no request body field (a book request's title, even when the mail is skipped), no search words (`search_partial` carries error kinds only), no URL query string or fragment in any field, `msg` or `err` (`logs.scrub_urls`), and a too-large body (413) answered through the same `X-Request-Id` and access-log logic.
 
 ## Visual use cases
 
