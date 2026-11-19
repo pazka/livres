@@ -49,7 +49,8 @@ class Mailer:
 
     def notify_owner(self, subject: str, body: str, background: bool = True) -> int | None:
         if not self.settings.owner_email:
-            log.warning(json.dumps({"event": "mail_skipped", "reason": "LIVRES_OWNER_EMAIL is empty", "subject": subject}))
+            # no subject: a book request's subject carries the title the user typed (AGENTS.md section 11)
+            log.warning(json.dumps({"event": "mail_skipped", "reason": "LIVRES_OWNER_EMAIL is empty"}))
             return None
         mail_id = self.store.queue_mail(self.settings.owner_email, subject, body)
         if background:

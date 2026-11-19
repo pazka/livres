@@ -88,7 +88,7 @@ class RequestService:
             raise RequestError("Le service reçoit beaucoup de demandes aujourd’hui. Merci de réessayer demain.", 429)
         request_id = self.store.add_request(req.title, req.author, req.message, req.contact, client)
         self.mailer.notify_owner(f"[livres] Demande de livre : {req.title}", self._body(request_id, req))
-        log.info(json.dumps({"event": "book_request", "id": request_id, "client": client}))
+        log.info(json.dumps({"event": "book_request", "id": request_id}))
         return request_id
 
     def _body(self, request_id: int, req: BookRequest) -> str:

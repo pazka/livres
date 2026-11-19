@@ -13,6 +13,8 @@ docker build -t livres:local . && bash visual/run.sh livres:local   # visual reg
 CI (`.github/workflows/ci.yml`): `test` runs the first two; `image` builds, runs the Trivy CRITICAL gate,
 the hardened container smoke (`livres.cli smoke`), then the visual regression.
 
+`tests/test_logging.py` pins the logging standard (hosh-management AGENTS.md section 11): the `startup` and `shutdown` lines (fields, config names without values), one `error` line with `err` {type, message, stack} and the route template on an unhandled exception, which requests are logged at info+ (5xx, admin 4xx, slow) and which stay at debug, `X-Request-Id` echoed or generated, `LOG_LEVEL`, the health check and harvest job lines, and what never reaches a log: no request body field (a book request's title, even when the mail is skipped), no search words (`search_partial` carries error kinds only), no URL query string or fragment in any field, `msg` or `err` (`logs.scrub_urls`), and a too-large body (413) or a bad `Content-Length` (400) answered through the same `X-Request-Id` and access-log logic. Errors outside `App.handle` never reach stderr as a raw traceback: a client that resets the connection gives one debug `client_disconnected` line, any other error one `http_crashed` error line with `err`, neither with the peer IP. The `book_request` line has no `client` key (no IP, no hashed client key), `X-Request-Id` is capped at 64 characters, the slow threshold is 1 s, and each `source_check` line has `source`, `ok` and `dur_ms`.
+
 ## Visual use cases
 
 Harness: `visual/` (hosh-management AGENTS.md section 3). `visual/run.sh` starts the image hardened as on
