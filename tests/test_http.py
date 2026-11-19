@@ -25,6 +25,7 @@ class Site:
                     time.sleep(site.robots_sleep)
                     if site.robots is None:
                         self.send_error(site.robots_status)
+                        site.done[self.path] = time.monotonic()
                         return
                     self._send(200, site.robots)
                 elif self.path == "/slow":
@@ -165,6 +166,15 @@ class HttpTests(unittest.TestCase):
         self.site.robots = b"User-agent: *\nCrawl-delay: 1\n"
         self.site.robots_sleep = 0.6
         client = PoliteHttpClient("LivresHoshBot/test", timeout=5, min_interval=0)
+        client.get(self.site.base + "/a", allowed_hosts=HOSTS)
+        arrived_a = next(t for t, p, _, _ in self.site.hits if p == "/a")
+        self.assertGreaterEqual(arrived_a - self.site.done["/robots.txt"], 0.95)
+
+    def test_min_interval_counts_from_the_end_of_a_slow_missing_robots_txt(self):
+        """No robots.txt (a slow 404): the first page still waits min_interval from the end of that answer."""
+        self.site.robots, self.site.robots_status = None, 404
+        self.site.robots_sleep = 0.6
+        client = PoliteHttpClient("LivresHoshBot/test", timeout=5, min_interval=1)
         client.get(self.site.base + "/a", allowed_hosts=HOSTS)
         arrived_a = next(t for t, p, _, _ in self.site.hits if p == "/a")
         self.assertGreaterEqual(arrived_a - self.site.done["/robots.txt"], 0.95)
