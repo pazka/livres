@@ -14,16 +14,23 @@ class Site:
     def __init__(self, robots: bytes | None = b"User-agent: *\nDisallow: /private\n", robots_status=200):
         site = self
         self.hits = []
+        self.done = {}  # path -> monotonic time its answer was fully written
         self.robots, self.robots_status = robots, robots_status
+        self.robots_sleep = 0.0  # seconds robots.txt takes to answer
 
         class H(BaseHTTPRequestHandler):
             def do_GET(self):
                 site.hits.append((time.monotonic(), self.path, self.headers.get("User-Agent"), self.headers.get("Range")))
                 if self.path == "/robots.txt":
+                    time.sleep(site.robots_sleep)
                     if site.robots is None:
                         self.send_error(site.robots_status)
+                        site.done[self.path] = time.monotonic()
                         return
                     self._send(200, site.robots)
+                elif self.path == "/slow":
+                    time.sleep(0.6)
+                    self._send(200, b"slow")
                 elif self.path == "/big":
                     self._send(200, b"x" * 5000)
                 elif self.path == "/redirect-away":
@@ -33,6 +40,11 @@ class Site:
                     self.end_headers()
                 elif self.path == "/missing":
                     self.send_error(404)
+                elif self.path == "/slow-missing":
+                    time.sleep(0.6)
+                    self.send_error(404)
+                    self.wfile.flush()
+                    site.done[self.path] = time.monotonic()
                 else:
                     self._send(200, b"hello")
 
@@ -41,6 +53,8 @@ class Site:
                 self.send_header("Content-Length", str(len(body)))
                 self.end_headers()
                 self.wfile.write(body)
+                self.wfile.flush()
+                site.done[self.path] = time.monotonic()
 
             def log_message(self, *a):
                 pass
@@ -137,6 +151,57 @@ class HttpTests(unittest.TestCase):
         times = [t for t, p, _, _ in self.site.hits if p in ("/a", "/b")]
         self.assertGreaterEqual(times[1] - times[0], 0.9)
         self.assertEqual(client.crawl_delay(self.site.base + "/a"), 1.0)
+
+    def test_crawl_delay_counts_from_the_end_of_the_previous_answer(self):
+        """The site sees Crawl-delay between the end of one answer and the next request, even when it is slow."""
+        self.site.robots = b"User-agent: *\nCrawl-delay: 1\n"
+        client = PoliteHttpClient("LivresHoshBot/test", timeout=5, min_interval=0)
+        client.get(self.site.base + "/slow", allowed_hosts=HOSTS)
+        client.get(self.site.base + "/b", allowed_hosts=HOSTS)
+        arrived_b = next(t for t, p, _, _ in self.site.hits if p == "/b")
+        self.assertGreaterEqual(arrived_b - self.site.done["/slow"], 0.95)
+
+    def test_crawl_delay_counts_from_the_end_of_a_slow_robots_txt(self):
+        """robots.txt is a request too: the first page waits Crawl-delay from the end of its answer."""
+        self.site.robots = b"User-agent: *\nCrawl-delay: 1\n"
+        self.site.robots_sleep = 0.6
+        client = PoliteHttpClient("LivresHoshBot/test", timeout=5, min_interval=0)
+        client.get(self.site.base + "/a", allowed_hosts=HOSTS)
+        arrived_a = next(t for t, p, _, _ in self.site.hits if p == "/a")
+        self.assertGreaterEqual(arrived_a - self.site.done["/robots.txt"], 0.95)
+
+    def test_min_interval_counts_from_the_end_of_a_slow_missing_robots_txt(self):
+        """No robots.txt (a slow 404): the first page still waits min_interval from the end of that answer."""
+        self.site.robots, self.site.robots_status = None, 404
+        self.site.robots_sleep = 0.6
+        client = PoliteHttpClient("LivresHoshBot/test", timeout=5, min_interval=1)
+        client.get(self.site.base + "/a", allowed_hosts=HOSTS)
+        arrived_a = next(t for t, p, _, _ in self.site.hits if p == "/a")
+        self.assertGreaterEqual(arrived_a - self.site.done["/robots.txt"], 0.95)
+
+    def test_crawl_delay_counts_from_the_end_of_a_slow_failed_answer(self):
+        """A slow error answer (HTTP 404) also starts the delay at its end, not at its start."""
+        self.site.robots = b"User-agent: *\nCrawl-delay: 1\n"
+        client = PoliteHttpClient("LivresHoshBot/test", timeout=5, min_interval=0)
+        with self.assertRaises(FetchError) as ctx:
+            client.get(self.site.base + "/slow-missing", allowed_hosts=HOSTS)
+        self.assertEqual(ctx.exception.kind, "http")
+        client.get(self.site.base + "/b", allowed_hosts=HOSTS)
+        arrived_b = next(t for t, p, _, _ in self.site.hits if p == "/b")
+        self.assertGreaterEqual(arrived_b - self.site.done["/slow-missing"], 0.95)
+
+    def test_crawl_delay_counts_from_a_client_timeout(self):
+        """A request that times out starts the delay when the client gave up, not when it asked."""
+        self.site.robots = b"User-agent: *\nCrawl-delay: 1\n"
+        client = PoliteHttpClient("LivresHoshBot/test", timeout=0.3, min_interval=0)
+        client.get(self.site.base + "/a", allowed_hosts=HOSTS)  # robots.txt read with time to spare
+        with self.assertRaises(FetchError) as ctx:
+            client.get(self.site.base + "/slow", allowed_hosts=HOSTS)
+        gave_up = time.monotonic()
+        self.assertEqual(ctx.exception.kind, "network")
+        client.get(self.site.base + "/b", allowed_hosts=HOSTS)
+        arrived_b = next(t for t, p, _, _ in self.site.hits if p == "/b")
+        self.assertGreaterEqual(arrived_b - gave_up, 0.95)
 
     def test_no_crawl_delay_means_min_interval(self):
         self.client.get(self.site.base + "/a", allowed_hosts=HOSTS)

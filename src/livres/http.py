@@ -4,7 +4,7 @@ Guarantees (each has a test in tests/test_http.py):
   * robots.txt is honoured for every URL (RFC 9309: 4xx = allowed, 5xx/unreachable = disallowed);
   * only hosts declared by the source are contacted, redirects included;
   * at most one request per host every `min_interval` seconds, or every robots.txt `Crawl-delay`
-    seconds when the site asks for more;
+    seconds when the site asks for more, counted from the end of the previous answer;
   * bodies are capped (no memory blow-up from a hostile or broken server);
   * a clear User-Agent with a contact page.
 """
@@ -119,6 +119,8 @@ class PoliteHttpClient:
                 raise FetchError("http", f"HTTP {e.code} for {url}") from e
             except (urllib.error.URLError, TimeoutError, OSError) as e:
                 raise FetchError("network", f"{type(e).__name__}: {getattr(e, 'reason', e)}") from e
+            finally:
+                self._last_hit[host] = time.monotonic()  # the delay counts from the end of this answer
 
     def allowed_by_robots(self, url: str, allowed_hosts) -> bool:
         parts = urllib.parse.urlsplit(url)
@@ -158,8 +160,11 @@ class PoliteHttpClient:
         try:
             with self._host_lock(host):
                 self._throttle(host)
-                with self._opener_factory(tuple(allowed_hosts)).open(req, timeout=self.timeout) as resp:
-                    parser.parse(resp.read(500_000).decode("utf-8", errors="replace").splitlines())
+                try:
+                    with self._opener_factory(tuple(allowed_hosts)).open(req, timeout=self.timeout) as resp:
+                        parser.parse(resp.read(500_000).decode("utf-8", errors="replace").splitlines())
+                finally:
+                    self._last_hit[host] = time.monotonic()
         except urllib.error.HTTPError as e:
             if 400 <= e.code < 500:
                 parser.parse([])  # no robots.txt: everything allowed
